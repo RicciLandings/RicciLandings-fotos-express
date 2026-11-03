@@ -1,0 +1,26 @@
+# Configuración del Supabase local (supabase start). En producción estos valores se fijan en el panel.
+project_id = "fotos-express"
+
+[api]
+port = 54321
+schemas = ["public", "storage"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+port = 54323
+
+[storage]
+file_size_limit = "50MiB"
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/admin/dashboard"]
+# Solo entran los fotógrafos que da de alta el dueño.
+enable_signup = false
+
+[auth.email]
+enable_signup = false
