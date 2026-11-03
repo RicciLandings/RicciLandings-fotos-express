@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ArrowLeft, Clock, CreditCard, Wallet } from 'lucide-react';
+import { ArrowLeft, Clock, CreditCard, Download, Wallet } from 'lucide-react';
+import { EsperandoPago } from '@/components/esperando-pago';
 import { Button } from '@/components/ui/button';
 import { codigoValido, normalizarCodigo } from '@/lib/codigos';
 import { configurado, urlPreview } from '@/lib/config';
@@ -23,8 +24,14 @@ async function buscarFoto(codigo: string): Promise<FotoPublica | null> {
   return data;
 }
 
-export default async function PaginaFoto({ params }: { params: Promise<{ codigo: string }> }) {
-  const { codigo: crudo } = await params;
+export default async function PaginaFoto({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ codigo: string }>;
+  searchParams: Promise<{ pago?: string }>;
+}) {
+  const [{ codigo: crudo }, { pago }] = await Promise.all([params, searchParams]);
   let decodificado = crudo;
   try {
     decodificado = decodeURIComponent(crudo);
@@ -75,9 +82,22 @@ export default async function PaginaFoto({ params }: { params: Promise<{ codigo:
       )}
 
       {foto.vendida ? (
-        <p className="rounded-lg bg-secondary p-4 text-center text-sm">Esta foto ya está comprada.</p>
+        <section className="space-y-3" aria-label="Descarga">
+          <p className="text-center font-medium">¡Listo! Tu foto ya es tuya.</p>
+          {/* <a> y no <Link>: es una descarga, no hay que precargarla. */}
+          <Button asChild size="lg" className="w-full">
+            <a href={`/api/fotos/${foto.codigo}/descarga`} rel="nofollow">
+              <Download aria-hidden />
+              Descargar en alta resolución
+            </a>
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Podés volver a descargarla cuando quieras con el mismo código.
+          </p>
+        </section>
       ) : (
         <section className="space-y-3" aria-label="Pago">
+          {pago === 'pendiente' && <EsperandoPago codigo={foto.codigo} />}
           <p className="text-center">
             <span className="text-3xl font-bold">{formatearPesos(foto.precio)}</span>
           </p>

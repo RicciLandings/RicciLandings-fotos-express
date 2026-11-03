@@ -67,6 +67,20 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Tarjetas con QR: A4 con márgenes chicos y colores exactos. */
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+  body {
+    background: white;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

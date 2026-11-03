@@ -9,6 +9,8 @@ export interface Album {
   titulo: string;
   ubicacion: string | null;
   prefijo_codigo: string;
+  /** Precio por defecto de las fotos nuevas (ARS). */
+  precio: number;
   creado_en: string;
 }
 
@@ -16,6 +18,8 @@ export interface Foto {
   id: string;
   album_id: string;
   codigo: string;
+  /** Número de tarjeta dentro del álbum. */
+  orden: number;
   /** null mientras el código está pregenerado y la foto todavía no se subió. */
   ruta_preview: string | null;
   ruta_alta: string | null;
@@ -47,4 +51,28 @@ export interface FotoPublica {
   vendida: boolean;
   titulo_album: string;
   ubicacion: string | null;
+}
+
+/** resumen_albumes() */
+export interface ResumenAlbum {
+  id: string;
+  titulo: string;
+  ubicacion: string | null;
+  prefijo_codigo: string;
+  precio: number;
+  creado_en: string;
+  codigos: number;
+  subidas: number;
+  vendidas: number;
+  vistas: number;
+}
+
+/** metricas_panel() */
+export interface MetricasPanel {
+  fotos: number;
+  fotos_subidas: number;
+  fotos_vendidas: number;
+  vistas: number;
+  pedidos_pendientes: number;
+  ingresos: { pasarela: Pasarela; moneda: Moneda; total: number; ventas: number }[];
 }

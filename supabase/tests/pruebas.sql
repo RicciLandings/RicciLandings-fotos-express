@@ -38,16 +38,16 @@ insert into auth.users (id, email) values
 insert into public.administradores (usuario_id) values ('00000000-0000-0000-0000-00000000000a');
 insert into public.albumes (id, titulo, ubicacion, prefijo_codigo)
   values ('10000000-0000-0000-0000-000000000001', 'Día 1 - Puerto de Frutos', 'Tigre', 'TIGRE');
-insert into public.fotos (id, album_id, codigo, ruta_preview, ruta_alta, precio) values
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'TIGRE-4892', 'a/p1.webp', 'a/o1.jpg', 5000),
-  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'TIGRE-4893', null, null, 5000);
+insert into public.fotos (id, album_id, codigo, ruta_preview, ruta_alta, precio, orden) values
+  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'TIGRE-4892', 'a/p1.webp', 'a/o1.jpg', 5000, 1),
+  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'TIGRE-4893', null, null, 5000, 2);
 insert into public.pedidos (id, foto_id, pasarela, monto, moneda) values
   ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'mercadopago', 5000, 'ARS'),
   ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'stripe', 5000, 'ARS');
 
 -- Restricciones de formato.
 select pruebas.espera_error(
-  $$insert into public.fotos (album_id, codigo, precio) values ('10000000-0000-0000-0000-000000000001', 'tigre-1', 10)$$,
+  $$insert into public.fotos (album_id, codigo, precio, orden) values ('10000000-0000-0000-0000-000000000001', 'tigre-1', 10, 99)$$,
   'fotos_codigo_check');
 select pruebas.espera_error(
   $$update public.fotos set vendida = true where codigo = 'TIGRE-4893'$$, 'fotos_check');
@@ -140,3 +140,66 @@ select 'ok pagos';
 -- No se puede borrar una foto con pedidos.
 select pruebas.espera_error($$delete from public.albumes where id = '10000000-0000-0000-0000-000000000001'$$, 'pedidos_foto_id_fkey');
 select 'ok integridad';
+
+-- ─── Panel: generador de códigos ─────────────────────────────────────────────
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+select pruebas.espera_error(
+  $$select * from public.generar_codigos('10000000-0000-0000-0000-000000000001', 3)$$, 'Solo los administradores');
+select pruebas.espera_error($$select public.metricas_panel()$$, 'Solo los administradores');
+select pruebas.afirmar((select count(*) = 0 from public.resumen_albumes()), 'un no admin no ve álbumes');
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+select pruebas.espera_error(
+  $$select * from public.generar_codigos('10000000-0000-0000-0000-000000000001', 0)$$, 'entre 1 y 500');
+create temp table nuevos as select * from public.generar_codigos('10000000-0000-0000-0000-000000000001', 50);
+select pruebas.afirmar((select count(*) = 50 from nuevos), 'genera la cantidad pedida');
+select pruebas.afirmar((select count(distinct codigo) = 50 from nuevos), 'los códigos no se repiten');
+select pruebas.afirmar((select bool_and(codigo ~ '^TIGRE-[2-9A-HJKMNP-Z]{6}$') from nuevos), 'formato PREFIJO + 6 sin ambiguos');
+select pruebas.afirmar((select min(orden) = 3 and max(orden) = 52 from nuevos), 'numera las tarjetas a continuación');
+select pruebas.afirmar(
+  (select bool_and(f.precio = 5000 and f.ruta_alta is null) from public.fotos f join nuevos n on n.id = f.id),
+  'toma el precio del álbum y quedan sin archivo');
+select pruebas.afirmar(
+  (select (public.metricas_panel() ->> 'fotos')::int = 52 and (public.metricas_panel() ->> 'vistas')::int = 2),
+  'métricas de fotos y vistas');
+select pruebas.afirmar(
+  (select public.metricas_panel() -> 'ingresos' -> 0 ->> 'total' = '5000.00'),
+  'ingresos por pasarela');
+select pruebas.afirmar(
+  (select codigos = 52 and subidas = 1 and vendidas = 1 from public.resumen_albumes()
+    where id = '10000000-0000-0000-0000-000000000001'),
+  'resumen de álbumes');
+select pruebas.espera_error(
+  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'x', 'y')$$, 'permission denied');
+reset role;
+select 'ok generador';
+
+-- ─── Panel: carga de archivos (service_role, desde /api/admin/procesar) ──────
+set role service_role;
+select pruebas.afirmar(
+  (select ruta_alta_anterior is null and ruta_preview_anterior is null
+     from public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'a/o2.jpg', 'a/p2.webp')),
+  'primera carga no devuelve rutas anteriores');
+select pruebas.afirmar(
+  (select ruta_alta_anterior = 'a/o2.jpg' and ruta_preview_anterior = 'a/p2.webp'
+     from public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'a/o3.jpg', 'a/p3.webp')),
+  'reemplazo devuelve las rutas viejas para borrarlas');
+select pruebas.espera_error(
+  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000001', 'a/o9.jpg', 'a/p9.webp')$$, 'ya se vendió');
+reset role;
+select pruebas.afirmar(
+  (select ruta_preview = 'a/p3.webp' from public.fotos where id = '20000000-0000-0000-0000-000000000002'),
+  'la foto queda con los archivos nuevos');
+select 'ok carga';
+
+-- ─── Descarga ────────────────────────────────────────────────────────────────
+set role anon;
+select pruebas.espera_error($$select public.ruta_descarga('TIGRE-4892')$$, 'permission denied');
+reset role;
+set role service_role;
+select pruebas.afirmar(public.ruta_descarga('tigre-4892') = 'a/o1.jpg', 'foto vendida: devuelve la ruta del original');
+select pruebas.afirmar(public.ruta_descarga('TIGRE-4893') is null, 'foto sin vender: no devuelve nada');
+select pruebas.afirmar(public.ruta_descarga('TIGRE-0000') is null, 'código inexistente: no devuelve nada');
+reset role;
+select 'ok descarga';
