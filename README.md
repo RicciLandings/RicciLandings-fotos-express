@@ -65,3 +65,5 @@ npm run lint && npm run typecheck && npm test && npm run test:db && npm run buil
 ```
 
 `npm run test:db` levanta un Postgres local descartable y prueba migraciones, RLS y funciones.
+
+`npm run e2e` prueba el sitio publicado de punta a punta (login, álbum, subida, marca de agua, página del cliente, tarjetas y descarga bloqueada). Instrucciones al principio de `scripts/prueba-e2e.mjs`.
