@@ -170,26 +170,40 @@ select pruebas.afirmar(
   (select codigos = 52 and subidas = 1 and vendidas = 1 from public.resumen_albumes()
     where id = '10000000-0000-0000-0000-000000000001'),
   'resumen de álbumes');
-select pruebas.espera_error(
-  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'x', 'y')$$, 'permission denied');
 reset role;
 select 'ok generador';
 
--- ─── Panel: carga de archivos (service_role, desde /api/admin/procesar) ──────
-set role service_role;
+-- ─── Panel: carga de archivos (admin logueado, desde /api/admin/procesar) ────
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+select pruebas.espera_error(
+  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001/o2.jpg', '10000000-0000-0000-0000-000000000001/p2.webp')$$,
+  'Solo los administradores');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
 select pruebas.afirmar(
   (select ruta_alta_anterior is null and ruta_preview_anterior is null
-     from public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'a/o2.jpg', 'a/p2.webp')),
+     from public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002',
+       '10000000-0000-0000-0000-000000000001/o2.jpg', '10000000-0000-0000-0000-000000000001/p2.webp')),
   'primera carga no devuelve rutas anteriores');
 select pruebas.afirmar(
-  (select ruta_alta_anterior = 'a/o2.jpg' and ruta_preview_anterior = 'a/p2.webp'
-     from public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'a/o3.jpg', 'a/p3.webp')),
+  (select ruta_alta_anterior = '10000000-0000-0000-0000-000000000001/o2.jpg'
+          and ruta_preview_anterior = '10000000-0000-0000-0000-000000000001/p2.webp'
+     from public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002',
+       '10000000-0000-0000-0000-000000000001/o3.jpg', '10000000-0000-0000-0000-000000000001/p3.webp')),
   'reemplazo devuelve las rutas viejas para borrarlas');
 select pruebas.espera_error(
-  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000001', 'a/o9.jpg', 'a/p9.webp')$$, 'ya se vendió');
+  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'otro-album/o4.jpg', '10000000-0000-0000-0000-000000000001/p4.webp')$$,
+  'no corresponden al álbum');
+select pruebas.espera_error(
+  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001/o9.jpg', '10000000-0000-0000-0000-000000000001/p9.webp')$$,
+  'ya se vendió');
+reset role;
+set role service_role;
+select pruebas.espera_error(
+  $$select public.cargar_archivos_foto('20000000-0000-0000-0000-000000000002', 'x', 'y')$$, 'permission denied');
 reset role;
 select pruebas.afirmar(
-  (select ruta_preview = 'a/p3.webp' from public.fotos where id = '20000000-0000-0000-0000-000000000002'),
+  (select ruta_preview = '10000000-0000-0000-0000-000000000001/p3.webp' from public.fotos where id = '20000000-0000-0000-0000-000000000002'),
   'la foto queda con los archivos nuevos');
 select 'ok carga';
 
