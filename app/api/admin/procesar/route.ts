@@ -38,7 +38,13 @@ export async function POST(pedido: Request) {
   if (!foto) return error('El código no existe.', 404);
   if (!rutaAlta.startsWith(`${foto.album_id}/`)) return error('El archivo no corresponde a este álbum.', 400);
 
-  const admin = supabaseAdmin();
+  let admin: ReturnType<typeof supabaseAdmin>;
+  try {
+    admin = supabaseAdmin();
+  } catch (e) {
+    console.error(e);
+    return error('El servidor no tiene bien configurada la clave secreta de Supabase.', 500);
+  }
   const borrarOriginal = () => admin.storage.from(BUCKET_ORIGINALES).remove([rutaAlta]);
 
   if (foto.vendida) {
@@ -47,7 +53,11 @@ export async function POST(pedido: Request) {
   }
 
   const { data: original, error: errorDescarga } = await admin.storage.from(BUCKET_ORIGINALES).download(rutaAlta);
-  if (errorDescarga || !original) return error('No se encontró el archivo subido.', 400);
+  if (errorDescarga || !original) {
+    console.error('No se pudo leer el original', rutaAlta, errorDescarga);
+    await borrarOriginal();
+    return error('El servidor no pudo leer la foto subida. Probá de nuevo.', 500);
+  }
 
   let preview: Buffer;
   try {

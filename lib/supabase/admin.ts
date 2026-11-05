@@ -1,8 +1,11 @@
 import 'server-only';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { BUCKET_ORIGINALES, SUPABASE_URL } from '@/lib/config';
+import { BUCKET_ORIGINALES, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/config';
 
 let admin: SupabaseClient | null = null;
+
+/** Falta o está mal la clave secreta del servidor. */
+export class ErrorConfiguracion extends Error {}
 
 /**
  * Cliente con service role: saltea RLS. Solo en el servidor y solo para tareas del sistema
@@ -10,7 +13,11 @@ let admin: SupabaseClient | null = null;
  */
 export function supabaseAdmin(): SupabaseClient {
   const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!clave || !SUPABASE_URL) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY o NEXT_PUBLIC_SUPABASE_URL.');
+  if (!clave || !SUPABASE_URL) throw new ErrorConfiguracion('Falta SUPABASE_SERVICE_ROLE_KEY o NEXT_PUBLIC_SUPABASE_URL.');
+  // Error típico al configurar: pegar la clave pública en lugar de la secreta.
+  if (clave === SUPABASE_ANON_KEY || clave.startsWith('sb_publishable_')) {
+    throw new ErrorConfiguracion('SUPABASE_SERVICE_ROLE_KEY tiene la clave pública: tiene que ser la secreta (sb_secret_…).');
+  }
   if (!admin) {
     admin = createClient(SUPABASE_URL, clave, { auth: { persistSession: false, autoRefreshToken: false } });
   }
