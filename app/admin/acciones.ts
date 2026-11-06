@@ -35,6 +35,12 @@ export async function salir() {
 
 // ─── Álbumes ─────────────────────────────────────────────────────────────────
 
+// Vacío = sin pack.
+const precioPackOpcional = z.preprocess(
+  (v) => (v === '' || v == null ? null : v),
+  z.coerce.number({ invalid_type_error: 'El precio del pack tiene que ser un número.' }).positive('El precio del pack tiene que ser mayor a 0.').max(99_999_999).nullable(),
+);
+
 const esquemaAlbum = z.object({
   titulo: z.string().trim().min(1, 'Poné un título.').max(120),
   ubicacion: z
@@ -48,6 +54,7 @@ const esquemaAlbum = z.object({
     .toUpperCase()
     .regex(/^[A-Z0-9]{2,12}$/, 'El prefijo va de 2 a 12 letras o números, sin espacios (ej. TIGRE).'),
   precio: z.coerce.number({ invalid_type_error: 'Poné un precio.' }).positive('El precio tiene que ser mayor a 0.').max(99_999_999),
+  precioPack: precioPackOpcional,
 });
 
 export async function crearAlbum(_: EstadoFormulario, datos: FormData): Promise<EstadoFormulario> {
@@ -56,6 +63,7 @@ export async function crearAlbum(_: EstadoFormulario, datos: FormData): Promise<
     ubicacion: datos.get('ubicacion') ?? '',
     prefijo: datos.get('prefijo') ?? '',
     precio: datos.get('precio') || undefined,
+    precioPack: datos.get('precioPack'),
   });
   if (!r.success) return { error: r.error.issues[0]?.message ?? 'Revisá los datos.' };
 
@@ -64,13 +72,46 @@ export async function crearAlbum(_: EstadoFormulario, datos: FormData): Promise<
 
   const { data, error } = await supabase
     .from('albumes')
-    .insert({ titulo: r.data.titulo, ubicacion: r.data.ubicacion, prefijo_codigo: r.data.prefijo, precio: r.data.precio })
+    .insert({
+      titulo: r.data.titulo,
+      ubicacion: r.data.ubicacion,
+      prefijo_codigo: r.data.prefijo,
+      precio: r.data.precio,
+      precio_pack: r.data.precioPack,
+    })
     .select('id')
     .single();
   if (error || !data) return { error: 'No se pudo crear el álbum. Probá de nuevo.' };
 
   revalidatePath('/admin/dashboard');
   redirect(`/admin/albumes/${data.id}`);
+}
+
+const esquemaPrecios = z.object({
+  albumId: z.string().uuid(),
+  precio: z.coerce.number({ invalid_type_error: 'Poné un precio.' }).positive('El precio tiene que ser mayor a 0.').max(99_999_999),
+  precioPack: precioPackOpcional,
+});
+
+export async function actualizarPrecios(_: EstadoFormulario, datos: FormData): Promise<EstadoFormulario> {
+  const r = esquemaPrecios.safeParse({
+    albumId: datos.get('albumId'),
+    precio: datos.get('precio') || undefined,
+    precioPack: datos.get('precioPack'),
+  });
+  if (!r.success) return { error: r.error.issues[0]?.message ?? 'Revisá los precios.' };
+
+  const { supabase, esAdmin } = await sesionAdmin();
+  if (!esAdmin) return SIN_PERMISO;
+
+  const { error } = await supabase
+    .from('albumes')
+    .update({ precio: r.data.precio, precio_pack: r.data.precioPack })
+    .eq('id', r.data.albumId);
+  if (error) return { error: 'No se pudieron guardar los precios.' };
+
+  revalidatePath(`/admin/albumes/${r.data.albumId}`);
+  return { ok: 'Precios guardados.' };
 }
 
 // ─── Códigos ─────────────────────────────────────────────────────────────────
@@ -95,5 +136,5 @@ export async function generarCodigos(_: EstadoFormulario, datos: FormData): Prom
 
   revalidatePath(`/admin/albumes/${r.data.albumId}`);
   const cantidad = Array.isArray(data) ? data.length : r.data.cantidad;
-  return { ok: cantidad === 1 ? 'Se generó 1 código.' : `Se generaron ${cantidad} códigos.` };
+  return { ok: cantidad === 1 ? 'Se generó 1 tarjeta.' : `Se generaron ${cantidad} tarjetas.` };
 }

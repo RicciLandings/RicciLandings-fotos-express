@@ -33,9 +33,19 @@ export function FormularioAlbum() {
         maxLength={12}
         autoCapitalize="characters"
         className="h-10 font-mono uppercase"
-        ayuda="Queda así: TIGRE-7KX9QM"
+        ayuda="Cada tarjeta queda así: TIGRE-7KX9QM"
       />
       <Campo id="precio" etiqueta="Precio por foto (ARS)" type="number" inputMode="numeric" min={1} step="any" placeholder="5000" required />
+      <Campo
+        id="precioPack"
+        etiqueta="Precio del pack completo (opcional)"
+        type="number"
+        inputMode="numeric"
+        min={1}
+        step="any"
+        placeholder="15000"
+        ayuda="Todas las fotos del cliente. Vacío = sin pack."
+      />
       {estado?.error && (
         <p role="alert" className="text-sm text-destructive">
           {estado.error}

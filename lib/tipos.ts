@@ -2,6 +2,7 @@
 
 export type Pasarela = 'mercadopago' | 'stripe';
 export type EstadoPedido = 'pendiente' | 'completado' | 'fallido';
+export type TipoPedido = 'fotos' | 'pack';
 export type Moneda = 'ARS' | 'USD';
 
 export interface Album {
@@ -9,29 +10,39 @@ export interface Album {
   titulo: string;
   ubicacion: string | null;
   prefijo_codigo: string;
-  /** Precio por defecto de las fotos nuevas (ARS). */
+  /** Precio por foto (ARS). */
   precio: number;
+  /** Precio del pack completo (ARS). null = sin pack. */
+  precio_pack: number | null;
+  creado_en: string;
+}
+
+/** Una tarjeta impresa = un cliente. */
+export interface Cliente {
+  id: string;
+  album_id: string;
+  codigo: string;
+  /** Número de tarjeta dentro del álbum. */
+  orden: number;
+  vistas: number;
   creado_en: string;
 }
 
 export interface Foto {
   id: string;
   album_id: string;
-  codigo: string;
-  /** Número de tarjeta dentro del álbum. */
-  orden: number;
-  /** null mientras el código está pregenerado y la foto todavía no se subió. */
-  ruta_preview: string | null;
-  ruta_alta: string | null;
-  precio: number;
+  cliente_id: string;
+  posicion: number;
+  ruta_preview: string;
+  ruta_alta: string;
   vendida: boolean;
-  vistas: number;
   creado_en: string;
 }
 
 export interface Pedido {
   id: string;
-  foto_id: string;
+  cliente_id: string;
+  tipo: TipoPedido;
   pasarela: Pasarela;
   id_pago: string | null;
   estado: EstadoPedido;
@@ -42,15 +53,16 @@ export interface Pedido {
   completado_en: string | null;
 }
 
-/** Lo que devuelve foto_por_codigo(): lo único que ve el público (nunca la ruta del original). */
-export interface FotoPublica {
+/** Lo que devuelve cliente_por_codigo(): lo único que ve el público (nunca la ruta del original). */
+export interface ClientePublico {
   id: string;
   codigo: string;
-  ruta_preview: string | null;
-  precio: number;
-  vendida: boolean;
+  orden: number;
   titulo_album: string;
   ubicacion: string | null;
+  precio_foto: number;
+  precio_pack: number | null;
+  fotos: { id: string; ruta_preview: string; posicion: number; vendida: boolean }[];
 }
 
 /** resumen_albumes() */
@@ -60,17 +72,20 @@ export interface ResumenAlbum {
   ubicacion: string | null;
   prefijo_codigo: string;
   precio: number;
+  precio_pack: number | null;
   creado_en: string;
-  codigos: number;
-  subidas: number;
+  clientes: number;
+  clientes_con_fotos: number;
+  fotos: number;
   vendidas: number;
   vistas: number;
 }
 
 /** metricas_panel() */
 export interface MetricasPanel {
+  clientes: number;
+  clientes_con_fotos: number;
   fotos: number;
-  fotos_subidas: number;
   fotos_vendidas: number;
   vistas: number;
   pedidos_pendientes: number;

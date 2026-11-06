@@ -28,13 +28,19 @@ export default async function Tarjetas({
   const { data: album } = await supabase.from('albumes').select('id, titulo').eq('id', id).maybeSingle();
   if (!album) notFound();
 
-  let consulta = supabase.from('fotos').select('codigo, orden').eq('album_id', id).order('orden').limit(LIMITE);
-  if (!verTodas) consulta = consulta.is('ruta_preview', null).eq('vendida', false);
-  const { data: fotos } = await consulta;
+  // Libres = tarjetas que todavía no tienen fotos (para entregar).
+  const { data: clientes } = await supabase
+    .from('clientes')
+    .select('codigo, orden, fotos(count)')
+    .eq('album_id', id)
+    .order('orden')
+    .limit(LIMITE)
+    .returns<{ codigo: string; orden: number; fotos: { count: number }[] }[]>();
+  const fotos = (clientes ?? []).filter((c) => verTodas || !(c.fotos[0]?.count > 0));
 
   const dominio = new URL(SITIO_URL).host;
   const tarjetas = await Promise.all(
-    (fotos ?? []).map(async (f) => ({
+    fotos.map(async (f) => ({
       ...f,
       qr: await QRCode.toString(`${SITIO_URL}/f/${f.codigo}`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' }),
     })),
@@ -67,7 +73,7 @@ export default async function Tarjetas({
         </div>
         {tarjetas.length === 0 && (
           <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-            No hay códigos libres. Generá más desde la página del álbum.
+            No hay tarjetas libres. Generá más desde la página del álbum.
           </p>
         )}
       </div>
@@ -80,15 +86,17 @@ export default async function Tarjetas({
           >
             <div className="size-[40mm] shrink-0" dangerouslySetInnerHTML={{ __html: t.qr }} />
             <div className="flex h-full min-w-0 flex-col justify-between">
-              <p className="text-[9pt] font-semibold">{NOMBRE_SITIO}</p>
+              <p className="flex items-baseline justify-between text-[9pt] font-semibold">
+                {NOMBRE_SITIO}
+                <span className="text-[11pt] font-bold">#{t.orden}</span>
+              </p>
               <div>
-                <p className="text-[7pt] text-neutral-600">Tu código</p>
+                <p className="text-[7pt] text-neutral-600">Tus fotos con el código</p>
                 <p className="font-mono text-[12pt] leading-tight font-bold break-all">{t.codigo}</p>
               </div>
               <p className="text-[6.5pt] leading-snug text-neutral-700">
                 Escaneá el QR o entrá a <span className="font-semibold">{dominio}</span> y escribí el código.
               </p>
-              <p className="text-[6pt] text-neutral-500">#{t.orden}</p>
             </div>
           </article>
         ))}

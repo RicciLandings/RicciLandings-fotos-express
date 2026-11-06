@@ -9,9 +9,9 @@ const INTENTOS = 60; // 3 minutos
 
 /**
  * Se muestra al volver de la pasarela (?pago=pendiente). Consulta el estado hasta que el webhook
- * acredita el pago y entonces recarga la página, que pasa a mostrar la descarga.
+ * acredita el pago (aumentan las fotos vendidas) y entonces recarga la galería con las descargas.
  */
-export function EsperandoPago({ codigo }: { codigo: string }) {
+export function EsperandoPago({ codigo, vendidasIniciales }: { codigo: string; vendidasIniciales: number }) {
   const router = useRouter();
   const [agotado, setAgotado] = useState(false);
 
@@ -22,8 +22,8 @@ export function EsperandoPago({ codigo }: { codigo: string }) {
       intentos++;
       try {
         const r = await fetch(`/api/fotos/${codigo}/estado`, { cache: 'no-store' });
-        const { vendida } = (await r.json()) as { vendida?: boolean };
-        if (vendida && activo) {
+        const { vendidas } = (await r.json()) as { vendidas?: string[] };
+        if (activo && (vendidas?.length ?? 0) > vendidasIniciales) {
           window.clearInterval(temporizador);
           router.replace(`/f/${codigo}`);
           router.refresh();
@@ -41,7 +41,7 @@ export function EsperandoPago({ codigo }: { codigo: string }) {
       activo = false;
       window.clearInterval(temporizador);
     };
-  }, [codigo, router]);
+  }, [codigo, vendidasIniciales, router]);
 
   return (
     <div role="status" className="flex items-center gap-3 rounded-lg bg-secondary p-4 text-sm">

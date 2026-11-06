@@ -6,7 +6,7 @@ import { generarCodigos } from '@/app/admin/acciones';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-/** Pregenera códigos (tarjetas) para entregar antes de subir las fotos. */
+/** Pregenera tarjetas (una por cliente) para entregar mientras se sacan las fotos. */
 export function GeneradorCodigos({ albumId }: { albumId: string }) {
   const [estado, accion, enviando] = useActionState(generarCodigos, null);
 
@@ -15,7 +15,7 @@ export function GeneradorCodigos({ albumId }: { albumId: string }) {
       <input type="hidden" name="albumId" value={albumId} />
       <div className="space-y-1.5">
         <label htmlFor="cantidad" className="text-sm font-medium">
-          Cantidad de códigos nuevos
+          Tarjetas nuevas (una por cliente)
         </label>
         <Input id="cantidad" name="cantidad" type="number" inputMode="numeric" min={1} max={500} defaultValue={50} required className="h-10" />
       </div>
@@ -31,7 +31,7 @@ export function GeneradorCodigos({ albumId }: { albumId: string }) {
       )}
       <Button type="submit" className="w-full" disabled={enviando}>
         {enviando ? <Loader2 className="animate-spin" aria-hidden /> : <QrCode aria-hidden />}
-        Generar códigos
+        Generar tarjetas
       </Button>
     </form>
   );

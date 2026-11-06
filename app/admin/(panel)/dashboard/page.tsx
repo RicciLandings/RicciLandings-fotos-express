@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ChevronRight, Eye, Images, ShoppingBag, Wallet } from 'lucide-react';
+import { ChevronRight, Eye, Images, ShoppingBag, Users, Wallet } from 'lucide-react';
 import { FormularioAlbum } from '@/components/admin/formulario-album';
 import { sesionAdmin } from '@/lib/admin';
 import type { MetricasPanel, Moneda, Pasarela, ResumenAlbum } from '@/lib/tipos';
@@ -43,17 +43,23 @@ export default async function Panel() {
     <div className="space-y-8">
       <section className="space-y-3">
         <h1 className="text-2xl font-bold">Resumen</h1>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <Dato
             icono={<Eye className="size-4" aria-hidden />}
             titulo="Vistas"
             valor={formatearNumero(metricas.vistas)}
           />
           <Dato
+            icono={<Users className="size-4" aria-hidden />}
+            titulo="Clientes con fotos"
+            valor={formatearNumero(metricas.clientes_con_fotos)}
+            detalle={`de ${formatearNumero(metricas.clientes)} tarjetas`}
+          />
+          <Dato
             icono={<ShoppingBag className="size-4" aria-hidden />}
             titulo="Fotos vendidas"
             valor={formatearNumero(metricas.fotos_vendidas)}
-            detalle={`de ${formatearNumero(metricas.fotos_subidas)} subidas`}
+            detalle={`de ${formatearNumero(metricas.fotos)} subidas`}
           />
           {PASARELAS.map(({ pasarela, moneda, nombre }) => {
             const { total, ventas } = ingreso(pasarela, moneda);
@@ -75,7 +81,7 @@ export default async function Panel() {
           <h2 className="text-lg font-semibold">Álbumes</h2>
           {!albumes?.length ? (
             <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-              Todavía no hay álbumes. Creá el primero para generar códigos y subir fotos.
+              Todavía no hay álbumes. Creá el primero para generar tarjetas y subir fotos.
             </p>
           ) : (
             <ul className="divide-y rounded-xl border">
@@ -86,13 +92,14 @@ export default async function Panel() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{a.titulo}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {a.prefijo_codigo} · {formatearPesos(a.precio)}
+                        {a.prefijo_codigo} · {formatearPesos(a.precio)}/foto
+                        {a.precio_pack ? ` · pack ${formatearPesos(a.precio_pack)}` : ''}
                         {a.ubicacion ? ` · ${a.ubicacion}` : ''}
                       </p>
                     </div>
                     <div className="text-right text-xs text-muted-foreground tabular-nums">
                       <p>
-                        {a.subidas}/{a.codigos} subidas
+                        {a.clientes_con_fotos}/{a.clientes} clientes · {a.fotos} fotos
                       </p>
                       <p>
                         {a.vendidas} vendidas · {a.vistas} vistas
