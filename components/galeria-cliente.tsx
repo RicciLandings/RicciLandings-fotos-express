@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { Check, Download, Package, Wallet } from 'lucide-react';
+import { Check, Download, Loader2, Package, Wallet } from 'lucide-react';
 import { EsperandoPago } from '@/components/esperando-pago';
 import { Button } from '@/components/ui/button';
 import { urlPreview } from '@/lib/config';
@@ -32,6 +32,8 @@ export function GaleriaCliente({ cliente, esperandoPago }: { cliente: ClientePub
   const { fotos, codigo } = cliente;
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [pack, setPack] = useState(false);
+  const [pagando, setPagando] = useState(false);
+  const [errorPago, setErrorPago] = useState<string | null>(null);
 
   const vendidas = fotos.filter((f) => f.vendida).length;
   const sinVender = fotos.length - vendidas;
@@ -44,6 +46,24 @@ export function GaleriaCliente({ cliente, esperandoPago }: { cliente: ClientePub
     seleccionadas: seleccion.size,
     pack,
   });
+
+  async function pagar() {
+    setPagando(true);
+    setErrorPago(null);
+    try {
+      const r = await fetch('/api/pagos/mercadopago', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo, tipo: cotizacion.tipo, fotoIds: cotizacion.tipo === 'fotos' ? [...seleccion] : [] }),
+      });
+      const cuerpo = (await r.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!r.ok || !cuerpo.url) throw new Error(cuerpo.error ?? 'No se pudo iniciar el pago.');
+      window.location.assign(cuerpo.url);
+    } catch (e) {
+      setErrorPago(e instanceof Error ? e.message : 'No se pudo iniciar el pago.');
+      setPagando(false);
+    }
+  }
 
   const alternar = (id: string) => {
     setPack(false);
@@ -145,12 +165,16 @@ export function GaleriaCliente({ cliente, esperandoPago }: { cliente: ClientePub
                   </span>
                 )}
               </div>
-              {/* Los pagos se conectan en el próximo paso (services/payments). */}
-              <Button size="lg" disabled title="Pagos muy pronto">
-                <Wallet aria-hidden />
-                {cotizacion.cantidad > 0 ? 'Pagar (pronto)' : 'Elegí tus fotos'}
+              <Button size="lg" onClick={pagar} disabled={cotizacion.cantidad === 0 || pagando}>
+                {pagando ? <Loader2 className="animate-spin" aria-hidden /> : <Wallet aria-hidden />}
+                {cotizacion.cantidad > 0 ? 'Pagar con Mercado Pago' : 'Elegí tus fotos'}
               </Button>
             </div>
+            {errorPago && (
+              <p role="alert" className="text-sm text-destructive">
+                {errorPago}
+              </p>
+            )}
           </div>
         </div>
       )}

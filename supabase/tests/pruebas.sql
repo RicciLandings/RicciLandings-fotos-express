@@ -229,3 +229,67 @@ select pruebas.afirmar(not exists (select 1 from public.fotos where album_id = '
 select pruebas.afirmar(not exists (select 1 from public.pedidos where id = '30000000-0000-0000-0000-000000000021'), 'ni el pedido pendiente');
 select pruebas.afirmar(exists (select 1 from public.albumes where id = '10000000-0000-0000-0000-000000000001'), 'el álbum con ventas sigue');
 select 'ok borrar album';
+
+-- ─── Crear pedido (servidor, antes de ir a la pasarela) ─────────────────────
+insert into public.albumes (id, titulo, prefijo_codigo, precio, precio_pack) values ('10000000-0000-0000-0000-000000000003', 'Cobros', 'COBRO', 5000, 12000);
+insert into public.clientes (id, album_id, codigo, orden) values
+  ('c0000000-0000-0000-0000-000000000031', '10000000-0000-0000-0000-000000000003', 'COBRO-AAAA', 1),
+  ('c0000000-0000-0000-0000-000000000032', '10000000-0000-0000-0000-000000000003', 'COBRO-BBBB', 2);
+insert into public.fotos (id, album_id, cliente_id, ruta_preview, ruta_alta, posicion) values
+  ('20000000-0000-0000-0000-000000000031', '10000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000031', 'c/p1.webp', 'c/o1.jpg', 1),
+  ('20000000-0000-0000-0000-000000000032', '10000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000031', 'c/p2.webp', 'c/o2.jpg', 2),
+  ('20000000-0000-0000-0000-000000000033', '10000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000031', 'c/p3.webp', 'c/o3.jpg', 3),
+  ('20000000-0000-0000-0000-000000000034', '10000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000032', 'c/p4.webp', 'c/o4.jpg', 1);
+
+set role anon;
+select pruebas.espera_error($$select public.crear_pedido('COBRO-AAAA', 'pack', null, 'mercadopago')$$, 'permission denied');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+select pruebas.espera_error($$select public.crear_pedido('COBRO-AAAA', 'pack', null, 'mercadopago')$$, 'permission denied');
+reset role;
+
+set role service_role;
+select pruebas.afirmar(
+  (select (r ->> 'monto')::numeric = 10000 and r ->> 'codigo' = 'COBRO-AAAA'
+     from (select public.crear_pedido(' cobro-aaaa ', 'fotos',
+       array['20000000-0000-0000-0000-000000000031', '20000000-0000-0000-0000-000000000032']::uuid[], 'mercadopago') r) x),
+  'fotos sueltas: cantidad × precio por foto');
+select pruebas.afirmar(
+  (select (public.crear_pedido('COBRO-AAAA', 'pack', null, 'mercadopago') ->> 'monto')::numeric = 12000),
+  'pack: precio del pack');
+select pruebas.espera_error(
+  $$select public.crear_pedido('COBRO-AAAA', 'fotos', array['20000000-0000-0000-0000-000000000034']::uuid[], 'mercadopago')$$,
+  'no es de este código');
+select pruebas.espera_error($$select public.crear_pedido('COBRO-AAAA', 'fotos', array[]::uuid[], 'mercadopago')$$, 'al menos una foto');
+select pruebas.espera_error($$select public.crear_pedido('COBRO-BBBB', 'pack', null, 'mercadopago')$$, 'pack no está disponible');
+select pruebas.espera_error($$select public.crear_pedido('COBRO-ZZZZ', 'pack', null, 'mercadopago')$$, 'no existe');
+select pruebas.espera_error($$select public.crear_pedido('COBRO-AAAA', 'regalo', null, 'mercadopago')$$, 'Tipo de pedido');
+reset role;
+select pruebas.afirmar(
+  (select count(*) = 2 from public.pedidos_fotos pf join public.pedidos p on p.id = pf.pedido_id
+    where p.cliente_id = 'c0000000-0000-0000-0000-000000000031' and p.tipo = 'fotos'),
+  'guarda las fotos elegidas');
+
+-- Pagar una foto suelta: ya no se puede ni volver a pedir esa foto ni el pack.
+set role service_role;
+select public.completar_pedido(
+  (select id from public.pedidos where cliente_id = 'c0000000-0000-0000-0000-000000000031' and tipo = 'fotos'), 'mp-90', 10000);
+select pruebas.espera_error(
+  $$select public.crear_pedido('COBRO-AAAA', 'fotos', array['20000000-0000-0000-0000-000000000031']::uuid[], 'mercadopago')$$,
+  'ya está paga');
+select pruebas.espera_error($$select public.crear_pedido('COBRO-AAAA', 'pack', null, 'mercadopago')$$, 'pack no está disponible');
+
+-- Pago rechazado: el pedido pendiente pasa a fallido; uno completado no se toca.
+select public.marcar_pedido_fallido(
+  (select id from public.pedidos where cliente_id = 'c0000000-0000-0000-0000-000000000031' and tipo = 'pack'), 'mp-91');
+select public.marcar_pedido_fallido(
+  (select id from public.pedidos where cliente_id = 'c0000000-0000-0000-0000-000000000031' and tipo = 'fotos'), 'mp-92');
+reset role;
+select pruebas.afirmar(
+  (select estado = 'fallido' from public.pedidos where cliente_id = 'c0000000-0000-0000-0000-000000000031' and tipo = 'pack'),
+  'rechazado → fallido');
+select pruebas.afirmar(
+  (select estado = 'completado' from public.pedidos where cliente_id = 'c0000000-0000-0000-0000-000000000031' and tipo = 'fotos'),
+  'un pedido pago no pasa a fallido');
+select 'ok crear pedido';

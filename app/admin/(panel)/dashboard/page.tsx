@@ -10,7 +10,6 @@ export const metadata: Metadata = { title: 'Panel' };
 
 const PASARELAS: { pasarela: Pasarela; moneda: Moneda; nombre: string }[] = [
   { pasarela: 'mercadopago', moneda: 'ARS', nombre: 'Mercado Pago' },
-  { pasarela: 'stripe', moneda: 'USD', nombre: 'Stripe' },
 ];
 
 function Dato({ icono, titulo, valor, detalle }: { icono: React.ReactNode; titulo: string; valor: string; detalle?: string }) {
@@ -43,7 +42,7 @@ export default async function Panel() {
     <div className="space-y-8">
       <section className="space-y-3">
         <h1 className="text-2xl font-bold">Resumen</h1>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Dato
             icono={<Eye className="size-4" aria-hidden />}
             titulo="Vistas"

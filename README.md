@@ -48,6 +48,16 @@ Al volver de la pasarela con `?pago=pendiente`, la página consulta el estado ha
 La marca de agua es una imagen generada con `npm run marca-agua` y guardada en `lib/marca-agua.ts`
 (en Vercel no hay fuentes para dibujar texto).
 
+## Cobros con Mercado Pago (Checkout Pro)
+
+1. En Mercado Pago → *Tus integraciones* → crear aplicación (Checkout Pro) y copiar el **Access Token** de producción.
+2. En la aplicación → *Webhooks*: URL `https://fotos-express.vercel.app/api/webhooks/mercadopago`, evento **Pagos**. Copiar la **clave secreta** que muestra.
+3. En Vercel → *Settings → Environment Variables* (marcadas como *Sensitive*): `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` y `SUPABASE_SERVICE_ROLE_KEY` (la clave **secreta** de Supabase, `sb_secret_…`). Después, *Redeploy*.
+
+El monto lo calcula la base (`crear_pedido`): el navegador solo dice qué fotos o si es el pack. El webhook verifica la firma,
+consulta el pago real en la API de MP y acredita con `completar_pedido` (idempotente). Para probar sin plata real, usar las
+credenciales y usuarios de prueba de MP. Stripe queda preparado en `services/payments/tipos.ts` (hace falta una cuenta fuera de Argentina).
+
 ## Estructura
 
 ```
