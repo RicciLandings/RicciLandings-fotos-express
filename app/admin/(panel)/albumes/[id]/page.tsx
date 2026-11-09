@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Eye, Printer } from 'lucide-react';
+import { BorrarAlbum } from '@/components/admin/borrar-album';
 import { FormularioPrecios } from '@/components/admin/formulario-precios';
 import { GeneradorCodigos } from '@/components/admin/generador-codigos';
 import { Uploader } from '@/components/admin/uploader';
@@ -36,6 +37,8 @@ export default async function PaginaAlbum({ params }: { params: Promise<{ id: st
   const lista = clientes ?? [];
   const conFotos = lista.filter((c) => fotosPorCliente.has(c.id));
   const libres = lista.length - conFotos.length;
+  const totalFotos = fotos?.length ?? 0;
+  const vendidas = (fotos ?? []).filter((f) => f.vendida).length;
 
   return (
     <div className="space-y-8">
@@ -123,6 +126,11 @@ export default async function PaginaAlbum({ params }: { params: Promise<{ id: st
             })}
           </ul>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-destructive">Zona de peligro</h2>
+        <BorrarAlbum albumId={album.id} prefijo={album.prefijo_codigo} tarjetas={lista.length} fotos={totalFotos} vendidas={vendidas} />
       </section>
     </div>
   );

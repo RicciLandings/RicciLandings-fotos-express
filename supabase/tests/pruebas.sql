@@ -199,3 +199,33 @@ select 'ok pagos';
 -- No se puede borrar un cliente (ni su álbum) con pedidos.
 select pruebas.espera_error($$delete from public.albumes where id = '10000000-0000-0000-0000-000000000001'$$, 'violates foreign key');
 select 'ok integridad';
+
+-- ─── Borrar álbum ────────────────────────────────────────────────────────────
+-- Álbum sin ventas: 2 clientes, 1 foto y un pedido pendiente que nunca se pagó.
+insert into public.albumes (id, titulo, prefijo_codigo, precio) values ('10000000-0000-0000-0000-000000000002', 'Para borrar', 'BORRA', 1000);
+insert into public.clientes (id, album_id, codigo, orden) values
+  ('c0000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000002', 'BORRA-AAAA', 1),
+  ('c0000000-0000-0000-0000-000000000022', '10000000-0000-0000-0000-000000000002', 'BORRA-BBBB', 2);
+insert into public.fotos (id, album_id, cliente_id, ruta_preview, ruta_alta, posicion) values
+  ('20000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000021', 'b/p.webp', 'b/o.jpg', 1);
+insert into public.pedidos (id, cliente_id, tipo, pasarela, monto, moneda)
+  values ('30000000-0000-0000-0000-000000000021', 'c0000000-0000-0000-0000-000000000021', 'fotos', 'mercadopago', 1000, 'ARS');
+insert into public.pedidos_fotos values ('30000000-0000-0000-0000-000000000021', '20000000-0000-0000-0000-000000000021');
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+select pruebas.espera_error($$select public.borrar_album('10000000-0000-0000-0000-000000000002')$$, 'Solo los administradores');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+select pruebas.espera_error($$select public.borrar_album('10000000-0000-0000-0000-000000000001')$$, 'no se puede borrar');
+select pruebas.espera_error($$select public.borrar_album('10000000-0000-0000-0000-000000000099')$$, 'no existe');
+select pruebas.afirmar(
+  (select (r ->> 'clientes')::int = 2 and (r ->> 'fotos')::int = 1
+     from (select public.borrar_album('10000000-0000-0000-0000-000000000002') as r) x),
+  'borra el álbum sin ventas y devuelve lo borrado');
+reset role;
+select pruebas.afirmar(not exists (select 1 from public.albumes where id = '10000000-0000-0000-0000-000000000002'), 'el álbum ya no existe');
+select pruebas.afirmar(not exists (select 1 from public.clientes where album_id = '10000000-0000-0000-0000-000000000002'), 'sus clientes tampoco');
+select pruebas.afirmar(not exists (select 1 from public.fotos where album_id = '10000000-0000-0000-0000-000000000002'), 'ni sus fotos');
+select pruebas.afirmar(not exists (select 1 from public.pedidos where id = '30000000-0000-0000-0000-000000000021'), 'ni el pedido pendiente');
+select pruebas.afirmar(exists (select 1 from public.albumes where id = '10000000-0000-0000-0000-000000000001'), 'el álbum con ventas sigue');
+select 'ok borrar album';

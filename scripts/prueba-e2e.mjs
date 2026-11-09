@@ -89,7 +89,7 @@ try {
   if (vista) {
     const rv = await fetch(`${SB_URL}/storage/v1/object/public/previews/${vista[1]}`);
     const meta = await sharp(Buffer.from(await rv.arrayBuffer())).metadata().catch(() => ({}));
-    paso('preview con marca de agua', rv.status === 200 && meta.format === 'webp' && meta.height === 1280 && !meta.exif, `${meta.width}x${meta.height}`);
+    paso('preview con marca de agua', rv.status === 200 && meta.format === 'webp' && meta.height === 900 && !meta.exif, `${meta.width}x${meta.height}`);
   }
   const ro = await fetch(`${SB_URL}/storage/v1/object/public/high-res-photos/${archivos[0][1]}`);
   paso('original NO es público', ro.status >= 400, String(ro.status));
@@ -126,12 +126,13 @@ try {
 } catch (e) {
   paso('excepción', false, e.stack);
 } finally {
+  // Limpieza con borrar_album (así también se prueba el borrado) + archivos.
   for (const [bucket, ruta] of archivos) await sb.storage.from(bucket).remove([ruta]);
   if (albumId) {
-    await sb.from('fotos').delete().eq('album_id', albumId);
-    await sb.from('clientes').delete().eq('album_id', albumId);
-    const { error } = await sb.from('albumes').delete().eq('id', albumId);
-    paso('limpieza', !error, error?.message);
+    const { data, error } = await sb.rpc('borrar_album', { p_album_id: albumId });
+    paso('borrar álbum (limpieza)', !error && data?.clientes === 3, error?.message ?? JSON.stringify(data));
+    const { data: queda } = await sb.from('albumes').select('id').eq('id', albumId).maybeSingle();
+    paso('el álbum ya no existe', !queda);
   }
   console.log(fallas ? `\n${fallas} FALLAS` : '\nTODO OK');
   process.exitCode = fallas ? 1 : 0;

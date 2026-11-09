@@ -17,7 +17,8 @@ describe('crearPreview', () => {
     expect(Math.max(meta.width!, meta.height!)).toBe(LADO_PREVIEW);
     expect(meta.width! / meta.height!).toBeCloseTo(4 / 3, 2);
     expect(meta.exif).toBeUndefined();
-    expect(preview.length).toBeLessThan(original.length);
+    // Liviana para 3G aun con la marca densa.
+    expect(preview.length).toBeLessThan(250 * 1024);
   });
 
   it('respeta la orientación del EXIF (foto vertical sacada con el celu)', async () => {
@@ -27,14 +28,19 @@ describe('crearPreview', () => {
   });
 
   it('no agranda fotos chicas', async () => {
-    const meta = await sharp(await crearPreview(await imagenDePrueba(800, 600))).metadata();
-    expect(meta.width).toBe(800);
+    const meta = await sharp(await crearPreview(await imagenDePrueba(600, 450))).metadata();
+    expect(meta.width).toBe(600);
   });
 
-  it('le pone la marca de agua (la imagen deja de ser lisa)', async () => {
+  it('la marca cubre toda la foto (cada cuadrante deja de ser liso)', async () => {
     const preview = await crearPreview(await imagenDePrueba(1200, 900));
-    const { channels } = await sharp(preview).stats();
-    expect(channels[0].max - channels[0].min).toBeGreaterThan(50);
+    const { width, height } = await sharp(preview).metadata();
+    const w = Math.floor(width! / 2);
+    const h = Math.floor(height! / 2);
+    for (const [left, top] of [[0, 0], [w, 0], [0, h], [w, h]]) {
+      const { channels } = await sharp(preview).extract({ left, top, width: w, height: h }).stats();
+      expect(channels[0].max - channels[0].min).toBeGreaterThan(50);
+    }
   });
 
   it('falla con un archivo que no es imagen', async () => {
