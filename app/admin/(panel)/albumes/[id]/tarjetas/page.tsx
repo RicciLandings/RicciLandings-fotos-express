@@ -42,7 +42,7 @@ export default async function Tarjetas({
   const tarjetas = await Promise.all(
     fotos.map(async (f) => ({
       ...f,
-      qr: await QRCode.toString(`${SITIO_URL}/f/${f.codigo}`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' }),
+      qr: await QRCode.toString(`${SITIO_URL}/f/${f.codigo}`, { type: 'svg', margin: 2, errorCorrectionLevel: 'M' }),
     })),
   );
 

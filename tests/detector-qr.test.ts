@@ -41,4 +41,14 @@ describe('leerCodigoTarjeta', () => {
     const { rgba, ancho, alto } = await foto('https://otro-sitio.com/promo');
     expect(leerCodigoTarjeta(rgba, ancho, alto)).toBeNull();
   });
+
+  it('captura chica (320 px) con el QR pegado al borde', async () => {
+    const qr = await QRCode.toBuffer('https://fotos-express.vercel.app/f/PSDLDR-SQ5DF6', { margin: 0, width: 150 });
+    const { data, info } = await sharp({ create: { width: 320, height: 200, channels: 3, background: '#ffffff' } })
+      .composite([{ input: qr, left: 0, top: 25 }])
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    expect(leerCodigoTarjeta(new Uint8ClampedArray(data), info.width, info.height)).toBe('PSDLDR-SQ5DF6');
+  });
 });

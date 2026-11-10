@@ -17,12 +17,22 @@ const LADO_MINIATURA = 240;
 const responder = (r: ResultadoAnalisis) => (self as unknown as { postMessage: (m: ResultadoAnalisis) => void }).postMessage(r);
 
 async function decodificar(archivo: File): Promise<ImageBitmap> {
-  // Decodificar ya reducida ahorra memoria con fotos de 24 MP. Si el navegador no soporta resize, se decodifica entera.
-  // Con solo resizeWidth el alto se ajusta solo (mantiene la proporción).
+  // Se decodifica entera para saber el tamaño y se achica solo si es grande: agrandar una
+  // captura chica deja el QR borroso.
+  const completa = await createImageBitmap(archivo);
+  const lado = Math.max(completa.width, completa.height);
+  if (lado <= LADO_ANALISIS) return completa;
   try {
-    return await createImageBitmap(archivo, { resizeWidth: LADO_ANALISIS, resizeQuality: 'medium' });
+    const escala = LADO_ANALISIS / lado;
+    const reducida = await createImageBitmap(completa, {
+      resizeWidth: Math.round(completa.width * escala),
+      resizeHeight: Math.round(completa.height * escala),
+      resizeQuality: 'medium',
+    });
+    completa.close();
+    return reducida;
   } catch {
-    return createImageBitmap(archivo);
+    return completa;
   }
 }
 
