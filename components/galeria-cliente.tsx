@@ -28,7 +28,7 @@ function Preview({ ruta, alt, sizes, priority }: { ruta: string; alt: string; si
   );
 }
 
-export function GaleriaCliente({ cliente, esperandoPago }: { cliente: ClientePublico; esperandoPago: boolean }) {
+export function GaleriaCliente({ cliente, esperandoPago, paymentId }: { cliente: ClientePublico; esperandoPago: boolean; paymentId?: string }) {
   const { fotos, codigo } = cliente;
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [pack, setPack] = useState(false);
@@ -79,7 +79,7 @@ export function GaleriaCliente({ cliente, esperandoPago }: { cliente: ClientePub
 
   return (
     <>
-      {esperandoPago && sinVender > 0 && <EsperandoPago codigo={codigo} vendidasIniciales={vendidas} />}
+      {esperandoPago && sinVender > 0 && <EsperandoPago codigo={codigo} vendidasIniciales={vendidas} paymentId={paymentId} />}
 
       <p className="text-sm text-muted-foreground">
         {sinVender > 0 ? 'Tocá las fotos que querés para elegirlas.' : '¡Listo! Todas tus fotos son tuyas.'}

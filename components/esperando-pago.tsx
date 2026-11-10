@@ -11,13 +11,21 @@ const INTENTOS = 60; // 3 minutos
  * Se muestra al volver de la pasarela (?pago=pendiente). Consulta el estado hasta que el webhook
  * acredita el pago (aumentan las fotos vendidas) y entonces recarga la galería con las descargas.
  */
-export function EsperandoPago({ codigo, vendidasIniciales }: { codigo: string; vendidasIniciales: number }) {
+export function EsperandoPago({ codigo, vendidasIniciales, paymentId }: { codigo: string; vendidasIniciales: number; paymentId?: string }) {
   const router = useRouter();
   const [agotado, setAgotado] = useState(false);
 
   useEffect(() => {
     let intentos = 0;
     let activo = true;
+    // Respaldo del webhook: con el payment_id de la vuelta, el servidor consulta el pago real en MP y lo acredita.
+    if (paymentId) {
+      fetch('/api/pagos/mercadopago/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      }).catch(() => undefined);
+    }
     const temporizador = window.setInterval(async () => {
       intentos++;
       try {
@@ -41,7 +49,7 @@ export function EsperandoPago({ codigo, vendidasIniciales }: { codigo: string; v
       activo = false;
       window.clearInterval(temporizador);
     };
-  }, [codigo, vendidasIniciales, router]);
+  }, [codigo, vendidasIniciales, paymentId, router]);
 
   return (
     <div role="status" className="flex items-center gap-3 rounded-lg bg-secondary p-4 text-sm">

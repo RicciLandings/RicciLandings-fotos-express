@@ -26,9 +26,9 @@ export default async function PaginaCliente({
   searchParams,
 }: {
   params: Promise<{ codigo: string }>;
-  searchParams: Promise<{ pago?: string }>;
+  searchParams: Promise<{ pago?: string; payment_id?: string }>;
 }) {
-  const [{ codigo: crudo }, { pago }] = await Promise.all([params, searchParams]);
+  const [{ codigo: crudo }, { pago, payment_id: paymentId }] = await Promise.all([params, searchParams]);
   let decodificado = crudo;
   try {
     decodificado = decodeURIComponent(crudo);
@@ -67,7 +67,7 @@ export default async function PaginaCliente({
           <p className="text-sm text-muted-foreground">Volvé a entrar en un rato con el mismo código.</p>
         </div>
       ) : (
-        <GaleriaCliente cliente={cliente} esperandoPago={pago === 'pendiente'} />
+        <GaleriaCliente cliente={cliente} esperandoPago={pago === 'pendiente'} paymentId={paymentId} />
       )}
     </main>
   );
