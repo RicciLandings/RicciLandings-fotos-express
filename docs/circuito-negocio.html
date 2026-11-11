@@ -252,9 +252,10 @@
 <p class="sub">Tres estrategias de precio, cada una con el volumen que podría tener. Trabajando como máximo <b>4 jornadas por mes</b> (una por semana: <b>"por semana" y "por jornada" son lo mismo</b>). Son <b>supuestos para ajustar</b>, no promesas.</p>
 <div class="planes" id="planes"></div>
 <ul class="notas">
-  <li><b>El pack cierra la venta:</b> si el pack cuesta unas 3 veces una foto, quien elige 3 o más fotos se lleva todas. El sistema se lo sugiere solo.</li>
+  <li><b>El pack cierra la venta:</b> con unas 10 fotos por cliente, un pack que cuesta 3 o 4 veces una foto es un ahorro enorme frente a comprarlas sueltas. Quien elige 3 o 4 fotos ya se lleva las 10 por lo mismo, y el sistema se lo sugiere solo.</li>
+  <li><b>Más fotos = más almacenamiento:</b> 10 fotos de ~6 MB por cliente son unos 5 GB por jornada de originales. El plan gratis de Supabase no alcanza: contá con el plan Pro.</li>
   <li><b>Lo que más mueve el resultado es la conversión</b> (cuántos de los que reciben tarjeta compran). Después de tu primera jornada, mirá en el panel las vistas y las ventas para ajustar estos números a la realidad.</li>
-  <li><b>Costos que incluye:</b> comisión de Mercado Pago, tarjetas impresas y los costos fijos mensuales (Vercel Pro, necesario para uso comercial, y Supabase). Verificá en tu cuenta el porcentaje exacto de Mercado Pago.</li>
+  <li><b>Costos que incluye:</b> comisión de Mercado Pago, tarjetas impresas y los costos fijos mensuales (Vercel Pro, necesario para uso comercial, y Supabase Pro por el almacenamiento). Verificá en tu cuenta el porcentaje exacto de Mercado Pago.</li>
   <li><b>No incluye:</b> impuestos (monotributo), tu tiempo, traslados ni ajustes por inflación. Los precios son en pesos de hoy.</li>
 </ul>
 
@@ -264,12 +265,13 @@
     <label>Tarjetas entregadas por jornada<input type="number" id="c-clientes" min="1" value="80"></label>
     <label>Compran (% de los que reciben)<input type="number" id="c-conv" min="1" max="100" value="20"></label>
     <label>Precio por foto ($)<input type="number" id="c-foto" min="1" value="4000"></label>
-    <label>Precio del pack ($)<input type="number" id="c-pack" min="1" value="12000"></label>
-    <label>Eligen pack (% de compradores)<input type="number" id="c-packpct" min="0" max="100" value="50"></label>
+    <label>Fotos por cliente (las del pack)<input type="number" id="c-fotos" min="2" value="10"></label>
+    <label>Precio del pack ($)<input type="number" id="c-pack" min="1" value="14000"></label>
+    <label>Eligen pack (% de compradores)<input type="number" id="c-packpct" min="0" max="100" value="60"></label>
     <label>Fotos sueltas que compran<input type="number" id="c-sueltas" min="1" value="2"></label>
     <label>Comisión Mercado Pago (%)<input type="number" id="c-com" min="0" step="0.1" value="6.5"></label>
     <label>Costo por tarjeta ($)<input type="number" id="c-tarjeta" min="0" value="150"></label>
-    <label>Costos fijos del mes ($)<input type="number" id="c-fijos" min="0" value="40000"></label>
+    <label>Costos fijos del mes ($)<input type="number" id="c-fijos" min="0" value="60000"></label>
     <label>Jornadas al mes (máx. 4)<input type="number" id="c-jornadas" min="1" max="4" value="4"></label>
   </div>
   <div class="res" id="calc-res" aria-live="polite"></div>
@@ -292,7 +294,7 @@
 <script>
 (function () {
   var pesos = function (n) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Math.round(n)); };
-  var COMUN = { sueltas: 2, com: 6.5, tarjeta: 150, fijos: 40000, jornadas: 4 };
+  var COMUN = { sueltas: 2, fotos: 10, com: 6.5, tarjeta: 150, fijos: 60000, jornadas: 4 };
 
   // Ingresos de una jornada y del mes a partir de los supuestos.
   function calcular(p) {
@@ -303,13 +305,16 @@
     return { compradores: compradores, bruto: bruto, neto: neto, mes: neto * p.jornadas - p.fijos };
   }
 
+  // Cuánto se ahorra el cliente llevándose todas las fotos en el pack en vez de comprarlas sueltas.
+  function ahorro(p) { var sueltas = p.fotos * p.foto; return sueltas > p.pack ? Math.round((1 - p.pack / sueltas) * 100) + '%' : 'ninguno'; }
+
   var planes = [
     { nombre: 'Accesible', tag: 'Más volumen', texto: 'Precio bajo para que casi nadie lo piense. Funciona si el lugar tiene mucho público.',
-      p: { clientes: 50, conv: 12, foto: 3000, pack: 8000, packpct: 40 } },
-    { nombre: 'Equilibrado', tag: 'Recomendado para empezar', dest: true, texto: 'Pack = 3 fotos. Buen punto medio entre precio y cantidad de ventas.',
-      p: { clientes: 80, conv: 20, foto: 4000, pack: 12000, packpct: 50 } },
+      p: { clientes: 50, conv: 12, foto: 3000, pack: 9000, packpct: 50 } },
+    { nombre: 'Equilibrado', tag: 'Recomendado para empezar', dest: true, texto: 'El pack sale 3,5 veces una foto y trae unas 10: el cliente siente que se lleva todo. Buen punto medio.',
+      p: { clientes: 80, conv: 20, foto: 4000, pack: 14000, packpct: 60 } },
     { nombre: 'Premium', tag: 'Menos ventas, más valor', texto: 'Para lugares con turismo de mayor poder adquisitivo, o con fotos más cuidadas.',
-      p: { clientes: 120, conv: 30, foto: 5000, pack: 15000, packpct: 55 } }
+      p: { clientes: 120, conv: 30, foto: 5000, pack: 20000, packpct: 65 } }
   ];
 
   var cont = document.getElementById('planes');
@@ -321,7 +326,8 @@
     el.innerHTML =
       '<div><span class="tag">' + pl.tag + '</span><h3>' + pl.nombre + '</h3><p>' + pl.texto + '</p></div>' +
       '<div class="sup"><span>Precio por foto</span><b>' + pesos(p.foto) + '</b>' +
-      '<span>Pack completo</span><b>' + pesos(p.pack) + '</b>' +
+      '<span>Pack (' + p.fotos + ' fotos)</span><b>' + pesos(p.pack) + '</b>' +
+      '<span>Ahorro del cliente con el pack</span><b>' + ahorro(p) + '</b>' +
       '<span>Tarjetas por jornada</span><b>' + p.clientes + '</b>' +
       '<span>Compran</span><b>' + p.conv + '%</b>' +
       '<span>Eligen pack</span><b>' + p.packpct + '%</b></div>' +
@@ -333,7 +339,7 @@
   });
 
   // Calculadora propia
-  var ids = ['clientes', 'conv', 'foto', 'pack', 'packpct', 'sueltas', 'com', 'tarjeta', 'fijos', 'jornadas'];
+  var ids = ['clientes', 'conv', 'foto', 'fotos', 'pack', 'packpct', 'sueltas', 'com', 'tarjeta', 'fijos', 'jornadas'];
   function leer() {
     var p = {};
     ids.forEach(function (k) { p[k] = Math.max(0, parseFloat(document.getElementById('c-' + k).value) || 0); });
@@ -350,7 +356,8 @@
       '<div><small>Ventas por jornada</small><strong>' + pesos(r.bruto) + '</strong></div>' +
       '<div><small>Neto por jornada y por semana</small><strong>' + pesos(r.neto) + '</strong></div>' +
       '<div class="grande"><small>Neto del mes (' + p.jornadas + (p.jornadas === 1 ? ' jornada' : ' jornadas') + ')</small><strong>' + pesos(r.mes) + '</strong></div>' +
-      '<div><small>El pack le conviene al cliente desde</small><strong>' + desde + ' fotos</strong></div>';
+      '<div><small>El pack le conviene al cliente desde</small><strong>' + desde + ' fotos</strong></div>' +
+      '<div><small>Ahorro del cliente con el pack (' + p.fotos + ' fotos)</small><strong>' + ahorro(p) + '</strong></div>';
   }
   ids.forEach(function (k) { document.getElementById('c-' + k).addEventListener('input', pintar); });
   pintar();
