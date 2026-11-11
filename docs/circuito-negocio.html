@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fotear: el circuito del negocio</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --ink: #16181d; --mute: #5d6470; --line: #e3e3de;
+    --foto: #2563eb; --cli: #db2777; --sis: #0f9d6e; --warn: #d97706;
+    --foto-bg: #e8effd; --cli-bg: #fce7f1; --sis-bg: #def5ec;
+    --sombra: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #181b22; --ink: #eceef2; --mute: #9aa1ae; --line: #2a2e38;
+      --foto: #7aa2ff; --cli: #ff7ab8; --sis: #4fd6a3; --warn: #f5a524;
+      --foto-bg: #1c2740; --cli-bg: #3a1c2b; --sis-bg: #11302a;
+      --sombra: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .contenedor { max-width: 980px; margin: 0 auto; padding: 0 16px 64px; }
+  header { padding: 48px 0 28px; }
+  .marca { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: -.01em; color: var(--mute); }
+  .marca svg { width: 20px; height: 20px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 3rem); line-height: 1.1; letter-spacing: -.03em; margin: 12px 0 10px; text-wrap: balance; }
+  header p { color: var(--mute); max-width: 60ch; margin: 0; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-size: .82rem; font-weight: 600; }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .t-foto { color: var(--foto); background: var(--foto-bg); }
+  .t-cli { color: var(--cli); background: var(--cli-bg); }
+  .t-sis { color: var(--sis); background: var(--sis-bg); }
+  h2 { font-size: 1.35rem; letter-spacing: -.02em; margin: 56px 0 6px; }
+  .sub { color: var(--mute); margin: 0 0 20px; }
+
+  /* Línea de tiempo */
+  .etapas { list-style: none; margin: 0; padding: 0; position: relative; }
+  .etapas::before { content: ""; position: absolute; left: 19px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+  .etapa { position: relative; padding: 0 0 20px 56px; }
+  .num { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+         background: var(--ink); color: var(--bg); font-weight: 800; box-shadow: 0 0 0 6px var(--bg); }
+  .tarjeta { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 18px 16px; box-shadow: var(--sombra); }
+  .tarjeta h3 { margin: 0 0 2px; font-size: 1.15rem; letter-spacing: -.01em; }
+  .quien { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+  .pasos { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  .pasos li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
+  .pasos li::before { content: ""; width: 8px; height: 8px; margin-top: 9px; border-radius: 50%; background: var(--line); }
+  .pasos li.f::before { background: var(--foto); } .pasos li.c::before { background: var(--cli); } .pasos li.s::before { background: var(--sis); }
+  .protege { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: var(--sis-bg); color: var(--ink); font-size: .92rem; display: flex; gap: 10px; }
+  .protege svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--sis); }
+  .protege b { color: var(--sis); }
+
+  /* Cuadrículas */
+  .grilla { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .caja { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: var(--sombra); }
+  .caja h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .caja ul { margin: 0; padding-left: 18px; color: var(--mute); }
+  .caja li { margin: 4px 0; }
+  .dato { font-size: 2rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
+  .dato small { display: block; font-size: .85rem; font-weight: 500; color: var(--mute); letter-spacing: 0; margin-top: 4px; }
+
+  /* Dinero */
+  .flujo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .flujo span { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-weight: 600; }
+  .flujo b { color: var(--mute); }
+
+  /* Estado */
+  .estado { display: grid; gap: 8px; }
+  .estado div { display: flex; gap: 10px; align-items: start; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .estado .ok { color: var(--sis); font-weight: 800; } .estado .falta { color: var(--warn); font-weight: 800; }
+  footer { margin-top: 56px; color: var(--mute); font-size: .85rem; }
+
+  @media (min-width: 760px) {
+    .etapas::before { left: 50%; margin-left: -1px; }
+    .etapa { width: 50%; padding: 0 40px 28px 0; }
+    .etapa:nth-child(even) { margin-left: 50%; padding: 0 0 28px 40px; }
+    .num { left: auto; right: -20px; }
+    .etapa:nth-child(even) .num { right: auto; left: -20px; }
+  }
+</style>
+</head>
+<body>
+<div class="contenedor">
+
+<header>
+  <span class="marca">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    Fotear
+  </span>
+  <h1>De la foto en la calle a la descarga en el celular</h1>
+  <p>El circuito completo del negocio, paso a paso: quién hace qué, cómo se cobra y qué protege las fotos en cada momento.</p>
+  <div class="leyenda" aria-label="Quién actúa">
+    <span class="chip t-foto"><i></i>Fotógrafo (vos)</span>
+    <span class="chip t-cli"><i></i>Cliente</span>
+    <span class="chip t-sis"><i></i>Sistema (automático)</span>
+  </div>
+</header>
+
+<h2>El recorrido en 6 etapas</h2>
+<p class="sub">Una tarjeta impresa = un cliente. Todo el circuito gira alrededor de ese código.</p>
+
+<ol class="etapas">
+  <li class="etapa">
+    <span class="num">1</span>
+    <div class="tarjeta">
+      <h3>Preparación</h3>
+      <div class="quien"><span class="chip t-foto"><i></i>Fotógrafo</span><span class="chip t-sis"><i></i>Sistema</span></div>
+      <ul class="pasos">
+        <li class="f">Creás el <b>álbum</b> (ej. "Puerto de Frutos") con el precio por foto y el del pack.</li>
+        <li class="s">El sistema genera las <b>tarjetas</b>: cada una con un código único de 8 caracteres y su QR.</li>
+        <li class="f">Imprimís las tarjetas (10 por hoja A4) y las llevás.</li>
+      </ul>
+      <div class="protege"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span><b>Protege:</b> los códigos son aleatorios y largos: no se pueden adivinar probando.</span></div>
+    </div>
+  </li>
+
+  <li class="etapa">
+    <span class="num">2</span>
+    <div class="tarjeta">
+      <h3>En la calle</h3>
+      <div class="quien"><span class="chip t-foto"><i></i>Fotógrafo</span><span class="chip t-cli"><i></i>Cliente</span></div>
+      <ul class="pasos">
+        <li class="f">Te acercás a alguien y le sacás una <b>foto a su tarjeta</b> (el QR bien visible).</li>
+        <li class="f">Le sacás sus fotos, las que sean.</li>
+        <li class="c">Le entregás la tarjeta: <b>una por persona</b>, no una por foto.</li>
+      </ul>
+      <div class="protege"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span><b>Protege:</b> la tarjeta es la llave. Cada cliente tiene la suya y solo ve lo suyo.</span></div>
+    </div>
+  </li>
+
+  <li class="etapa">
+    <span class="num">3</span>
+    <div class="tarjeta">
+      <h3>Carga del día</h3>
+      <div class="quien"><span class="chip t-foto"><i></i>Fotógrafo</span><span class="chip t-sis"><i></i>Sistema</span></div>
+      <ul class="pasos">
+        <li class="f">Volvés y arrastrás <b>todas las fotos del día</b> al panel.</li>
+        <li class="s">El sistema <b>lee los QR</b> de las fotos de tarjeta y reparte las demás entre los clientes, en orden.</li>
+        <li class="f">Revisás el reparto (lo que quedó sin tarjeta lo asignás a mano) y confirmás.</li>
+        <li class="s">Genera una <b>copia chica con marca de agua</b> de cada foto. El original queda guardado aparte.</li>
+      </ul>
+      <div class="protege"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span><b>Protege:</b> los originales van a un depósito privado. Lo único público es la copia con marca.</span></div>
+    </div>
+  </li>
+
+  <li class="etapa">
+    <span class="num">4</span>
+    <div class="tarjeta">
+      <h3>El cliente mira y elige</h3>
+      <div class="quien"><span class="chip t-cli"><i></i>Cliente</span><span class="chip t-sis"><i></i>Sistema</span></div>
+      <ul class="pasos">
+        <li class="c">Escanea el QR (o escribe el código) y entra a <b>su galería</b>.</li>
+        <li class="c">Marca las fotos que quiere, o toma el <b>pack completo</b> si le conviene.</li>
+        <li class="s">Le muestra el total y le sugiere el pack cuando sale igual o más barato.</li>
+      </ul>
+      <div class="protege"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span><b>Protege:</b> tras 10 códigos erróneos seguidos se pausa el acceso 15 minutos. Las fotos sin comprar vencen a los 30 días. No se puede ampliar ni guardar la imagen.</span></div>
+    </div>
+  </li>
+
+  <li class="etapa">
+    <span class="num">5</span>
+    <div class="tarjeta">
+      <h3>Cobro</h3>
+      <div class="quien"><span class="chip t-cli"><i></i>Cliente</span><span class="chip t-sis"><i></i>Sistema</span></div>
+      <ul class="pasos">
+        <li class="c">Toca <b>Pagar con Mercado Pago</b> y paga con tarjeta, saldo o efectivo.</li>
+        <li class="s">El <b>monto lo calcula el sistema</b>, no el celular del cliente.</li>
+        <li class="s">Al volver, el sistema <b>le pregunta a Mercado Pago</b> si el pago está aprobado y lo acredita.</li>
+      </ul>
+      <div class="protege"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span><b>Protege:</b> nadie puede "decir" que pagó: solo cuenta lo que confirma Mercado Pago.</span></div>
+    </div>
+  </li>
+
+  <li class="etapa">
+    <span class="num">6</span>
+    <div class="tarjeta">
+      <h3>Entrega</h3>
+      <div class="quien"><span class="chip t-cli"><i></i>Cliente</span><span class="chip t-sis"><i></i>Sistema</span></div>
+      <ul class="pasos">
+        <li class="c">Las fotos pagas muestran el botón <b>Descargar</b>.</li>
+        <li class="s">Genera un <b>enlace temporal (15 minutos)</b> al original en alta resolución, sin marca.</li>
+        <li class="c">Puede volver a descargar cuando quiera, con el mismo código.</li>
+      </ul>
+      <div class="protege"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span><b>Protege:</b> el enlace vence y solo se genera para fotos pagas de ese cliente.</span></div>
+    </div>
+  </li>
+</ol>
+
+<h2>Qué ve cada uno</h2>
+<p class="sub">Dos mundos separados que no se tocan.</p>
+<div class="grilla">
+  <div class="caja">
+    <h3><span class="chip t-foto"><i></i>Tu panel</span></h3>
+    <ul>
+      <li>Resumen: vistas, clientes con fotos, ventas e ingresos.</li>
+      <li>Álbumes, tarjetas, precios y subida del día.</li>
+      <li>Cada cliente con sus fotos y cuáles se vendieron.</li>
+      <li>Borrar álbumes (no si tienen ventas).</li>
+    </ul>
+  </div>
+  <div class="caja">
+    <h3><span class="chip t-cli"><i></i>La galería del cliente</span></h3>
+    <ul>
+      <li>Solo sus fotos, con marca de agua.</li>
+      <li>Selección, total y pack.</li>
+      <li>Botón de pago y, después, descargas.</li>
+      <li>Nada de otros clientes, ni de otros álbumes.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Cómo se mueve la plata</h2>
+<p class="sub">Todo en pesos, vía Mercado Pago.</p>
+<div class="flujo" role="img" aria-label="Cliente paga a Mercado Pago, que acredita el pago al sistema, que libera la descarga">
+  <span>Cliente</span><b>→</b><span>Mercado Pago</span><b>→</b><span>Confirmación al sistema</span><b>→</b><span>Descarga liberada</span>
+</div>
+
+<h2>Los números que mandan</h2>
+<p class="sub">Los definís vos, por álbum.</p>
+<div class="grilla">
+  <div class="caja"><div class="dato">Por foto<small>Precio individual de cada foto</small></div></div>
+  <div class="caja"><div class="dato">Pack<small>Todas las fotos del cliente, a un precio cerrado</small></div></div>
+  <div class="caja"><div class="dato">30 días<small>Cuánto se ven y se pueden comprar las fotos sin pagar</small></div></div>
+  <div class="caja"><div class="dato">15 min<small>Vida del enlace de descarga</small></div></div>
+</div>
+
+<h2>Cómo está el proyecto hoy</h2>
+<p class="sub">Qué ya funciona y qué falta para salir a la calle.</p>
+<div class="estado">
+  <div><span class="ok">✓</span><span>Panel, tarjetas con QR, subida del día con reparto automático.</span></div>
+  <div><span class="ok">✓</span><span>Galería del cliente con pack, marca de agua fuerte y sin ampliar.</span></div>
+  <div><span class="ok">✓</span><span>Cobro con Mercado Pago (en modo de prueba) y descarga protegida.</span></div>
+  <div><span class="ok">✓</span><span>Privacidad: códigos largos, límite de intentos, vencimiento.</span></div>
+  <div><span class="falta">○</span><span>Pasar Mercado Pago a <b>producción</b> (credenciales reales) y hacer una compra real chica.</span></div>
+  <div><span class="falta">○</span><span>Elegir un <b>dominio propio</b> (cambia lo que llevan los QR: conviene definirlo antes de imprimir).</span></div>
+  <div><span class="falta">○</span><span>Stripe para cobros en dólares: queda preparado, pendiente de tener cuenta.</span></div>
+</div>
+
+<footer>Fotear · mapa del negocio · versión de trabajo para pensar y decidir.</footer>
+</div>
+</body>
+</html>
