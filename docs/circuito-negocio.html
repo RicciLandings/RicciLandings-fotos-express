@@ -96,12 +96,10 @@
   .calc .res { margin-top: 0; }
   footer { margin-top: 56px; color: var(--mute); font-size: .85rem; }
 
+  /* Una sola columna, también en pantallas grandes: se lee de arriba hacia abajo. */
   @media (min-width: 760px) {
-    .etapas::before { left: 50%; margin-left: -1px; }
-    .etapa { width: 50%; padding: 0 40px 28px 0; }
-    .etapa:nth-child(even) { margin-left: 50%; padding: 0 0 28px 40px; }
-    .num { left: auto; right: -20px; }
-    .etapa:nth-child(even) .num { right: auto; left: -20px; }
+    .etapas { max-width: 760px; }
+    .etapa { padding-bottom: 24px; }
   }
 </style>
 </head>
