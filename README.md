@@ -1,4 +1,4 @@
-# Fotos Express
+# Fotear
 
 Venta y entrega express de fotos digitales en puntos turísticos y eventos.
 

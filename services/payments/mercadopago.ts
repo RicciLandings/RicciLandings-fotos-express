@@ -89,7 +89,7 @@ export const mercadoPago: ServicioPago = {
         back_urls: { success: datos.urlVuelta, pending: datos.urlVuelta, failure: datos.urlVuelta },
         auto_return: 'approved',
         notification_url: `${SITIO_URL}/api/webhooks/mercadopago`,
-        statement_descriptor: 'FOTOS EXPRESS',
+        statement_descriptor: 'FOTEAR',
         expires: true,
         expiration_date_to: vence,
         ...(datos.emailCliente ? { payer: { email: datos.emailCliente } } : {}),

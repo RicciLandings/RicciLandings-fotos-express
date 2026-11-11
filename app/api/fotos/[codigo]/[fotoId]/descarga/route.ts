@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { codigoValido, normalizarCodigo } from '@/lib/codigos';
 import { firmarDescarga, supabaseAdmin } from '@/lib/supabase/admin';
-import { supabaseServidor } from '@/lib/supabase/server';
-import type { ClientePublico } from '@/lib/tipos';
+import { abrirGaleria } from '@/lib/galeria';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,13 +17,12 @@ export async function GET(pedido: Request, { params }: { params: Promise<{ codig
   if (!codigoValido(codigo) || !UUID.test(fotoId)) return NextResponse.json({ error: 'No existe.' }, { status: 404 });
   const volverALaGaleria = () => NextResponse.redirect(new URL(`/f/${codigo}`, pedido.url), 303);
 
-  // Primero el chequeo público (no necesita la clave secreta): si no está paga, de vuelta a la galería.
-  const supabase = await supabaseServidor();
-  const { data } = await supabase.rpc('cliente_por_codigo', { p_codigo: codigo });
-  const foto = (data as ClientePublico | null)?.fotos.find((f) => f.id === fotoId);
-  if (!foto?.vendida) return volverALaGaleria();
-
   try {
+    // Si la foto no es de este código o no está paga, de vuelta a la galería.
+    const cliente = await abrirGaleria(codigo, pedido.headers);
+    const foto = cliente && cliente !== 'bloqueado' ? cliente.fotos.find((f) => f.id === fotoId) : undefined;
+    if (!foto?.vendida) return volverALaGaleria();
+
     const { data: ruta, error } = await supabaseAdmin().rpc('ruta_descarga', { p_codigo: codigo, p_foto_id: fotoId });
     if (error) throw error;
     if (!ruta) return volverALaGaleria();

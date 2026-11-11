@@ -31,6 +31,17 @@ end;
 $$;
 grant execute on function pruebas.afirmar(boolean, text) to anon, authenticated, service_role;
 
+-- La galería solo se abre con service_role: estos atajos permiten usarla desde cualquier rol de prueba.
+create function pruebas.galeria(p_codigo text) returns json language sql security definer as $$
+  select public.abrir_galeria(p_codigo, null, false);
+$$;
+create function pruebas.vista(p_codigo text) returns void language plpgsql security definer as $$
+begin
+  perform public.abrir_galeria(p_codigo, null, true);
+end;
+$$;
+grant execute on function pruebas.galeria(text), pruebas.vista(text) to anon, authenticated, service_role;
+
 -- Datos: un admin, un usuario común, un álbum con pack, dos clientes (uno con 3 fotos) y dos pedidos.
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'admin@ejemplo.com'),
@@ -74,22 +85,22 @@ select pruebas.espera_error('select * from public.clientes', 'permission denied'
 select pruebas.espera_error('select * from public.pedidos', 'permission denied');
 select pruebas.espera_error('select * from public.pedidos_fotos', 'permission denied');
 
-select pruebas.afirmar((public.cliente_por_codigo(' tigre-4892 ') ->> 'codigo') = 'TIGRE-4892', 'cliente_por_codigo encuentra al cliente');
-select pruebas.afirmar(json_array_length(public.cliente_por_codigo('TIGRE-4892') -> 'fotos') = 3, 'devuelve sus 3 fotos');
-select pruebas.afirmar((public.cliente_por_codigo('TIGRE-4892') -> 'fotos' -> 0 ->> 'ruta_preview') = 'a/p1.webp', 'en orden de posición');
-select pruebas.afirmar((public.cliente_por_codigo('TIGRE-4892') ->> 'precio_pack')::numeric = 12000, 'incluye precio del pack');
-select pruebas.afirmar(position('o1.jpg' in public.cliente_por_codigo('TIGRE-4892')::text) = 0, 'nunca expone ruta_alta');
-select pruebas.afirmar(json_array_length(public.cliente_por_codigo('TIGRE-4893') -> 'fotos') = 0, 'tarjeta libre: sin fotos');
-select pruebas.afirmar(public.cliente_por_codigo('TIGRE-0000') is null, 'código inexistente: null');
+select pruebas.afirmar((pruebas.galeria(' tigre-4892 ') ->> 'codigo') = 'TIGRE-4892', 'la galería encuentra al cliente');
+select pruebas.afirmar(json_array_length(pruebas.galeria('TIGRE-4892') -> 'fotos') = 3, 'devuelve sus 3 fotos');
+select pruebas.afirmar((pruebas.galeria('TIGRE-4892') -> 'fotos' -> 0 ->> 'ruta_preview') = 'a/p1.webp', 'en orden de posición');
+select pruebas.afirmar((pruebas.galeria('TIGRE-4892') ->> 'precio_pack')::numeric = 12000, 'incluye precio del pack');
+select pruebas.afirmar(position('o1.jpg' in pruebas.galeria('TIGRE-4892')::text) = 0, 'nunca expone ruta_alta');
+select pruebas.afirmar(json_array_length(pruebas.galeria('TIGRE-4893') -> 'fotos') = 0, 'tarjeta libre: sin fotos');
+select pruebas.afirmar(pruebas.galeria('TIGRE-0000') is null, 'código inexistente: null');
 
-select public.registrar_vista('TIGRE-4892');
-select public.registrar_vista('TIGRE-4892');
+select pruebas.vista('TIGRE-4892');
+select pruebas.vista('TIGRE-4892');
 select pruebas.espera_error($$select public.completar_pedido('30000000-0000-0000-0000-000000000001', 'x', 10000)$$, 'permission denied');
 select pruebas.espera_error($$select public.ruta_descarga('TIGRE-4892', '20000000-0000-0000-0000-000000000001')$$, 'permission denied');
 select pruebas.espera_error($$select * from public.cargar_foto_cliente('c0000000-0000-0000-0000-000000000001', 'x', 'y')$$, 'permission denied');
 select pruebas.espera_error($$insert into storage.objects (bucket_id, name) values ('high-res-photos', 'x.jpg')$$, 'row-level security');
 reset role;
-select pruebas.afirmar((select vistas = 2 from public.clientes where codigo = 'TIGRE-4892'), 'registrar_vista suma vistas al cliente');
+select pruebas.afirmar((select vistas = 2 from public.clientes where codigo = 'TIGRE-4892'), 'abrir la galería suma vistas al cliente');
 select 'ok anon';
 
 -- ─── Usuario logueado que no es admin ────────────────────────────────────────
@@ -117,7 +128,7 @@ select pruebas.afirmar((select count(*) = 2 from public.clientes), 'el admin ve 
 
 create temp table nuevos as select * from public.generar_codigos('10000000-0000-0000-0000-000000000001', 50);
 select pruebas.afirmar((select count(distinct codigo) = 50 from nuevos), 'genera 50 códigos distintos');
-select pruebas.afirmar((select bool_and(codigo ~ '^TIGRE-[2-9A-HJKMNP-Z]{6}$') from nuevos), 'formato PREFIJO + 6 sin ambiguos');
+select pruebas.afirmar((select bool_and(codigo ~ '^TIGRE-[2-9A-HJKMNP-Z]{8}$') from nuevos), 'formato PREFIJO + 8 sin ambiguos');
 select pruebas.afirmar((select min(orden) = 3 and max(orden) = 52 from nuevos), 'numera las tarjetas a continuación');
 
 -- Carga de fotos: van al final del cliente y validan la carpeta del álbum.
@@ -184,7 +195,7 @@ select pruebas.afirmar(
   (select bool_and(vendida) and count(*) = 4 from public.fotos where cliente_id = 'c0000000-0000-0000-0000-000000000001'),
   'pack: todas las fotos del cliente quedan vendidas');
 select pruebas.afirmar(
-  (select bool_and((f ->> 'vendida')::boolean) from json_array_elements(public.cliente_por_codigo('TIGRE-4892') -> 'fotos') f),
+  (select bool_and((f ->> 'vendida')::boolean) from json_array_elements(pruebas.galeria('TIGRE-4892') -> 'fotos') f),
   'el cliente ve sus fotos como vendidas');
 
 -- El mismo pago no puede acreditar otro pedido de la misma pasarela.
@@ -293,3 +304,60 @@ select pruebas.afirmar(
   (select estado = 'completado' from public.pedidos where cliente_id = 'c0000000-0000-0000-0000-000000000031' and tipo = 'fotos'),
   'un pedido pago no pasa a fallido');
 select 'ok crear pedido';
+
+
+-- ─── Privacidad: acceso, límite de intentos y vencimiento ───────────────────
+set role anon;
+select pruebas.espera_error($$select public.abrir_galeria('TIGRE-4892', 'h', false)$$, 'permission denied');
+select pruebas.espera_error('select * from public.intentos_codigo', 'permission denied');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+select pruebas.espera_error($$select public.abrir_galeria('TIGRE-4892', 'h', false)$$, 'permission denied');
+reset role;
+
+set role service_role;
+-- 10 códigos inexistentes desde la misma huella: al siguiente intento queda bloqueada, aun con un código válido.
+select pruebas.afirmar(bool_and(public.abrir_galeria('TIGRE-' || lpad(n::text, 4, '0'), 'huella-1', false) is null), '10 fallos devuelven null')
+  from generate_series(1, 10) n;
+select pruebas.afirmar((public.abrir_galeria('TIGRE-4892', 'huella-1', false) ->> 'bloqueado')::boolean, 'la huella queda bloqueada');
+select pruebas.afirmar((public.abrir_galeria('TIGRE-4892', 'huella-2', false) ->> 'codigo') = 'TIGRE-4892', 'otra huella no se ve afectada');
+reset role;
+update public.intentos_codigo set momento = now() - interval '16 minutes' where huella = 'huella-1';
+select pruebas.afirmar((pruebas.galeria('TIGRE-4892') ->> 'codigo') = 'TIGRE-4892', 'sin huella no hay límite');
+set role service_role;
+select pruebas.afirmar((public.abrir_galeria('TIGRE-4892', 'huella-1', false) ->> 'codigo') = 'TIGRE-4892', 'a los 15 minutos se desbloquea');
+reset role;
+
+-- Vencimiento: COBRO-BBBB tiene una foto sin vender; COBRO-AAAA tiene dos vendidas y una sin vender.
+select pruebas.afirmar((pruebas.galeria('COBRO-BBBB') ->> 'disponible_hasta') is not null, 'informa hasta cuándo están disponibles');
+update public.fotos set creado_en = now() - interval '40 days' where album_id = '10000000-0000-0000-0000-000000000003';
+select pruebas.afirmar(
+  (select json_array_length(g -> 'fotos') = 0 and (g ->> 'vencidas')::int = 1 from (select pruebas.galeria('COBRO-BBBB') g) x),
+  'la foto sin vender vencida no se muestra');
+select pruebas.afirmar(
+  (select json_array_length(g -> 'fotos') = 2 and (g ->> 'vencidas')::int = 1 from (select pruebas.galeria('COBRO-AAAA') g) x),
+  'las fotos compradas se siguen viendo aunque sean viejas');
+set role service_role;
+select pruebas.espera_error(
+  $$select public.crear_pedido('COBRO-BBBB', 'fotos', array['20000000-0000-0000-0000-000000000034']::uuid[], 'mercadopago')$$,
+  'ya no está disponible');
+select pruebas.afirmar(public.ruta_descarga('COBRO-AAAA', '20000000-0000-0000-0000-000000000031') = 'c/o1.jpg', 'la comprada se sigue descargando');
+reset role;
+update public.albumes set dias_vigencia = 60 where id = '10000000-0000-0000-0000-000000000003';
+select pruebas.afirmar(json_array_length(pruebas.galeria('COBRO-BBBB') -> 'fotos') = 1, 'la vigencia es por álbum');
+
+-- Pack: marca solo las fotos guardadas en el pedido (las vigentes al pedir).
+insert into public.clientes (id, album_id, codigo, orden) values ('c0000000-0000-0000-0000-000000000033', '10000000-0000-0000-0000-000000000003', 'COBRO-CCCC', 3);
+insert into public.fotos (id, album_id, cliente_id, ruta_preview, ruta_alta, posicion, creado_en) values
+  ('20000000-0000-0000-0000-000000000041', '10000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000033', 'c/p41.webp', 'c/o41.jpg', 1, now()),
+  ('20000000-0000-0000-0000-000000000042', '10000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000033', 'c/p42.webp', 'c/o42.jpg', 2, now()),
+  ('20000000-0000-0000-0000-000000000043', '10000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000033', 'c/p43.webp', 'c/o43.jpg', 3, now() - interval '90 days');
+set role service_role;
+select public.completar_pedido((public.crear_pedido('COBRO-CCCC', 'pack', null, 'mercadopago') ->> 'pedido_id')::uuid, 'mp-pack-1', 12000);
+reset role;
+select pruebas.afirmar(
+  (select array_agg(posicion order by posicion) = array[1, 2] from public.fotos
+    where cliente_id = 'c0000000-0000-0000-0000-000000000033' and vendida),
+  'el pack no incluye la foto vencida');
+select 'ok privacidad';

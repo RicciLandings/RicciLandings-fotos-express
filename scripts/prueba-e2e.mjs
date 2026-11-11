@@ -104,7 +104,8 @@ try {
   const re = await fetch(`${SITIO}/api/fotos/${cliente.codigo}/estado`);
   paso('estado', re.status === 200 && (await re.json()).vendidas?.length === 0, String(re.status));
 
-  const { data: publico } = await sb.rpc('cliente_por_codigo', { p_codigo: cliente.codigo });
+  const { data: fotosCliente } = await sb.from('fotos').select('id').eq('cliente_id', cliente.id).order('posicion');
+  const publico = { fotos: fotosCliente };
   const rd = await fetch(`${SITIO}/api/fotos/${cliente.codigo}/${publico.fotos[0].id}/descarga`, { redirect: 'manual' });
   paso('descarga bloqueada sin pagar', rd.status === 303 && rd.headers.get('location')?.includes(`/f/${cliente.codigo}`), `${rd.status}`);
 

@@ -9,7 +9,7 @@
 import { writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 
-const TEXTO = 'MUESTRA · FOTOS EXPRESS';
+const TEXTO = 'MUESTRA · FOTEAR · MUESTRA';
 const LADO = 480; // baldosa cuadrada: la trama a 45° empalma sin cortes si LADO es múltiplo de PASO
 const PASO = 24;
 

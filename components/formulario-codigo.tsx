@@ -26,7 +26,7 @@ export function FormularioCodigo() {
     evento.preventDefault();
     const codigo = normalizarCodigo(valor);
     if (!codigoValido(codigo)) {
-      setError('Revisá el código: tiene que ser como TIGRE-4892.');
+      setError('Revisá el código: tiene que ser como TIGRE-7KX9QM4P.');
       return;
     }
     setError(null);
@@ -48,7 +48,7 @@ export function FormularioCodigo() {
             setValor(e.target.value.toUpperCase());
             if (error) setError(null);
           }}
-          placeholder="TIGRE-4892"
+          placeholder="TIGRE-7KX9QM4P"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="characters"
@@ -57,7 +57,7 @@ export function FormularioCodigo() {
           maxLength={24}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? 'codigo-error' : undefined}
-          className="h-14 text-center font-mono text-2xl tracking-widest uppercase md:text-2xl"
+          className="h-14 text-center font-mono text-xl tracking-wider uppercase md:text-xl"
         />
         {error && (
           <p id="codigo-error" role="alert" className="text-sm text-destructive">
@@ -66,7 +66,7 @@ export function FormularioCodigo() {
         )}
         <Button type="submit" size="lg" className="w-full" disabled={navegando || !valor.trim()}>
           {navegando ? <Loader2 className="animate-spin" aria-hidden /> : <ArrowRight aria-hidden />}
-          Ver mi foto
+          Ver mis fotos
         </Button>
       </form>
 

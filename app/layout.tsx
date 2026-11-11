@@ -4,8 +4,8 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITIO_URL),
-  title: { default: `${NOMBRE_SITIO}: tu foto al toque`, template: `%s · ${NOMBRE_SITIO}` },
-  description: 'Ingresá el código de tu tarjeta, mirá tu foto y descargala en alta resolución.',
+  title: { default: `${NOMBRE_SITIO}: tus fotos, listas para vos`, template: `%s · ${NOMBRE_SITIO}` },
+  description: 'Ingresá el código de tu tarjeta o escaneá el QR, elegí tus fotos y descargalas en alta resolución.',
 };
 
 export const viewport: Viewport = {

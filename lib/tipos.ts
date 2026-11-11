@@ -14,6 +14,8 @@ export interface Album {
   precio: number;
   /** Precio del pack completo (ARS). null = sin pack. */
   precio_pack: number | null;
+  /** Días que las fotos sin comprar quedan visibles. */
+  dias_vigencia: number;
   creado_en: string;
 }
 
@@ -63,6 +65,10 @@ export interface ClientePublico {
   precio_foto: number;
   precio_pack: number | null;
   fotos: { id: string; ruta_preview: string; posicion: number; vendida: boolean }[];
+  /** Fotos sin comprar que ya vencieron (no se muestran). */
+  vencidas: number;
+  /** Hasta cuándo se ven las fotos sin comprar (ISO), o null. */
+  disponible_hasta: string | null;
 }
 
 /** resumen_albumes() */

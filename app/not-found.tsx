@@ -8,7 +8,7 @@ export default function NoEncontrado() {
       <SearchX className="size-10 text-muted-foreground" aria-hidden />
       <h1 className="text-xl font-semibold">No encontramos ese código</h1>
       <p className="text-sm text-muted-foreground">
-        Fijate que esté bien escrito, tal cual figura en tu tarjeta (por ejemplo TIGRE-4892).
+        Revisá que esté escrito tal cual figura en tu tarjeta, o escaneá el QR.
       </p>
       <Button asChild size="lg" className="w-full">
         <Link href="/">Probar otro código</Link>
