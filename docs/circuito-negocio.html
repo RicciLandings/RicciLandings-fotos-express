@@ -46,8 +46,8 @@
   .tarjeta h3 { margin: 0 0 2px; font-size: 1.15rem; letter-spacing: -.01em; }
   .quien { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
   .pasos { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-  .pasos li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
-  .pasos li::before { content: ""; width: 8px; height: 8px; margin-top: 9px; border-radius: 50%; background: var(--line); }
+  .pasos li { position: relative; padding-left: 20px; }
+  .pasos li::before { content: ""; position: absolute; left: 0; top: .62em; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
   .pasos li.f::before { background: var(--foto); } .pasos li.c::before { background: var(--cli); } .pasos li.s::before { background: var(--sis); }
   .protege { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: var(--sis-bg); color: var(--ink); font-size: .92rem; display: flex; gap: 10px; }
   .protege svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--sis); }
@@ -71,6 +71,29 @@
   .estado { display: grid; gap: 8px; }
   .estado div { display: flex; gap: 10px; align-items: start; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
   .estado .ok { color: var(--sis); font-weight: 800; } .estado .falta { color: var(--warn); font-weight: 800; }
+  /* Planes y ganancias */
+  .planes { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+  .plan { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: var(--sombra); display: flex; flex-direction: column; gap: 14px; }
+  .plan.dest { border-color: var(--foto); box-shadow: 0 0 0 3px var(--foto-bg), var(--sombra); }
+  .plan h3 { margin: 0; font-size: 1.15rem; }
+  .plan .tag { font-size: .78rem; font-weight: 700; color: var(--foto); text-transform: uppercase; letter-spacing: .04em; }
+  .plan p { margin: 0; color: var(--mute); font-size: .92rem; }
+  .sup { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: .9rem; color: var(--mute); }
+  .sup b { color: var(--ink); font-weight: 600; text-align: right; }
+  .res { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 10px; margin-top: auto; }
+  .res div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .res small { color: var(--mute); }
+  .res strong { font-size: 1.05rem; letter-spacing: -.01em; }
+  .res .grande strong { font-size: 1.5rem; color: var(--sis); }
+  .notas { margin: 18px 0 0; padding: 14px 16px 14px 34px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; color: var(--mute); font-size: .92rem; }
+  .notas li { margin: 4px 0; }
+  .subt { font-size: 1.1rem; margin: 32px 0 12px; }
+  .calc { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: var(--sombra); display: grid; gap: 18px; }
+  .campos { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .campos label { display: grid; gap: 4px; font-size: .82rem; color: var(--mute); }
+  .campos input { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; width: 100%; }
+  .campos input:focus-visible { outline: 2px solid var(--foto); outline-offset: 1px; }
+  .calc .res { margin-top: 0; }
   footer { margin-top: 56px; color: var(--mute); font-size: .85rem; }
 
   @media (min-width: 760px) {
@@ -227,6 +250,33 @@
   <div class="caja"><div class="dato">15 min<small>Vida del enlace de descarga</small></div></div>
 </div>
 
+<h2>Planes de precio y ganancias estimadas</h2>
+<p class="sub">Tres estrategias de precio, cada una con el volumen que podría tener. Trabajando como máximo <b>4 jornadas por mes</b> (una por semana: <b>"por semana" y "por jornada" son lo mismo</b>). Son <b>supuestos para ajustar</b>, no promesas.</p>
+<div class="planes" id="planes"></div>
+<ul class="notas">
+  <li><b>El pack cierra la venta:</b> si el pack cuesta unas 3 veces una foto, quien elige 3 o más fotos se lleva todas. El sistema se lo sugiere solo.</li>
+  <li><b>Lo que más mueve el resultado es la conversión</b> (cuántos de los que reciben tarjeta compran). Después de tu primera jornada, mirá en el panel las vistas y las ventas para ajustar estos números a la realidad.</li>
+  <li><b>Costos que incluye:</b> comisión de Mercado Pago, tarjetas impresas y los costos fijos mensuales (Vercel Pro, necesario para uso comercial, y Supabase). Verificá en tu cuenta el porcentaje exacto de Mercado Pago.</li>
+  <li><b>No incluye:</b> impuestos (monotributo), tu tiempo, traslados ni ajustes por inflación. Los precios son en pesos de hoy.</li>
+</ul>
+
+<h3 class="subt">Armá tu propio escenario</h3>
+<div class="calc">
+  <div class="campos">
+    <label>Tarjetas entregadas por jornada<input type="number" id="c-clientes" min="1" value="80"></label>
+    <label>Compran (% de los que reciben)<input type="number" id="c-conv" min="1" max="100" value="20"></label>
+    <label>Precio por foto ($)<input type="number" id="c-foto" min="1" value="4000"></label>
+    <label>Precio del pack ($)<input type="number" id="c-pack" min="1" value="12000"></label>
+    <label>Eligen pack (% de compradores)<input type="number" id="c-packpct" min="0" max="100" value="50"></label>
+    <label>Fotos sueltas que compran<input type="number" id="c-sueltas" min="1" value="2"></label>
+    <label>Comisión Mercado Pago (%)<input type="number" id="c-com" min="0" step="0.1" value="6.5"></label>
+    <label>Costo por tarjeta ($)<input type="number" id="c-tarjeta" min="0" value="150"></label>
+    <label>Costos fijos del mes ($)<input type="number" id="c-fijos" min="0" value="40000"></label>
+    <label>Jornadas al mes (máx. 4)<input type="number" id="c-jornadas" min="1" max="4" value="4"></label>
+  </div>
+  <div class="res" id="calc-res" aria-live="polite"></div>
+</div>
+
 <h2>Cómo está el proyecto hoy</h2>
 <p class="sub">Qué ya funciona y qué falta para salir a la calle.</p>
 <div class="estado">
@@ -241,5 +291,72 @@
 
 <footer>Fotear · mapa del negocio · versión de trabajo para pensar y decidir.</footer>
 </div>
+<script>
+(function () {
+  var pesos = function (n) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Math.round(n)); };
+  var COMUN = { sueltas: 2, com: 6.5, tarjeta: 150, fijos: 40000, jornadas: 4 };
+
+  // Ingresos de una jornada y del mes a partir de los supuestos.
+  function calcular(p) {
+    var compradores = p.clientes * p.conv / 100;
+    var porComprador = p.packpct / 100 * p.pack + (1 - p.packpct / 100) * p.sueltas * p.foto;
+    var bruto = compradores * porComprador;
+    var neto = bruto - bruto * p.com / 100 - p.clientes * p.tarjeta;
+    return { compradores: compradores, bruto: bruto, neto: neto, mes: neto * p.jornadas - p.fijos };
+  }
+
+  var planes = [
+    { nombre: 'Accesible', tag: 'Más volumen', texto: 'Precio bajo para que casi nadie lo piense. Funciona si el lugar tiene mucho público.',
+      p: { clientes: 50, conv: 12, foto: 3000, pack: 8000, packpct: 40 } },
+    { nombre: 'Equilibrado', tag: 'Recomendado para empezar', dest: true, texto: 'Pack = 3 fotos. Buen punto medio entre precio y cantidad de ventas.',
+      p: { clientes: 80, conv: 20, foto: 4000, pack: 12000, packpct: 50 } },
+    { nombre: 'Premium', tag: 'Menos ventas, más valor', texto: 'Para lugares con turismo de mayor poder adquisitivo, o con fotos más cuidadas.',
+      p: { clientes: 120, conv: 30, foto: 5000, pack: 15000, packpct: 55 } }
+  ];
+
+  var cont = document.getElementById('planes');
+  planes.forEach(function (pl) {
+    var p = Object.assign({}, COMUN, pl.p);
+    var r = calcular(p);
+    var el = document.createElement('article');
+    el.className = 'plan' + (pl.dest ? ' dest' : '');
+    el.innerHTML =
+      '<div><span class="tag">' + pl.tag + '</span><h3>' + pl.nombre + '</h3><p>' + pl.texto + '</p></div>' +
+      '<div class="sup"><span>Precio por foto</span><b>' + pesos(p.foto) + '</b>' +
+      '<span>Pack completo</span><b>' + pesos(p.pack) + '</b>' +
+      '<span>Tarjetas por jornada</span><b>' + p.clientes + '</b>' +
+      '<span>Compran</span><b>' + p.conv + '%</b>' +
+      '<span>Eligen pack</span><b>' + p.packpct + '%</b></div>' +
+      '<div class="res">' +
+      '<div><small>Ventas por jornada</small><strong>' + pesos(r.bruto) + '</strong></div>' +
+      '<div><small>Neto por jornada y por semana</small><strong>' + pesos(r.neto) + '</strong></div>' +
+      '<div class="grande"><small>Neto del mes (4 jornadas)</small><strong>' + pesos(r.mes) + '</strong></div></div>';
+    cont.appendChild(el);
+  });
+
+  // Calculadora propia
+  var ids = ['clientes', 'conv', 'foto', 'pack', 'packpct', 'sueltas', 'com', 'tarjeta', 'fijos', 'jornadas'];
+  function leer() {
+    var p = {};
+    ids.forEach(function (k) { p[k] = Math.max(0, parseFloat(document.getElementById('c-' + k).value) || 0); });
+    p.jornadas = Math.min(4, Math.max(1, p.jornadas || 1));
+    p.conv = Math.min(100, p.conv);
+    p.packpct = Math.min(100, p.packpct);
+    return p;
+  }
+  function pintar() {
+    var p = leer(), r = calcular(p);
+    var desde = p.foto > 0 ? Math.ceil(p.pack / p.foto) : 0;
+    document.getElementById('calc-res').innerHTML =
+      '<div><small>Compradores por jornada</small><strong>' + (Math.round(r.compradores * 10) / 10) + '</strong></div>' +
+      '<div><small>Ventas por jornada</small><strong>' + pesos(r.bruto) + '</strong></div>' +
+      '<div><small>Neto por jornada y por semana</small><strong>' + pesos(r.neto) + '</strong></div>' +
+      '<div class="grande"><small>Neto del mes (' + p.jornadas + (p.jornadas === 1 ? ' jornada' : ' jornadas') + ')</small><strong>' + pesos(r.mes) + '</strong></div>' +
+      '<div><small>El pack le conviene al cliente desde</small><strong>' + desde + ' fotos</strong></div>';
+  }
+  ids.forEach(function (k) { document.getElementById('c-' + k).addEventListener('input', pintar); });
+  pintar();
+})();
+</script>
 </body>
 </html>
