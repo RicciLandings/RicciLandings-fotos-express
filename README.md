@@ -2,9 +2,9 @@
 
 Venta y entrega express de fotos digitales en puntos turísticos y eventos.
 
-1. El fotógrafo le saca varias fotos a alguien y le entrega **una tarjeta** con su código (`TIGRE-7KX9QM`) y un QR.
+1. El fotógrafo le saca varias fotos a alguien y le entrega **una tarjeta** con su código (`TIGRE-7KX9QM4P`) y un QR.
 2. El cliente escanea el QR y ve **todas sus fotos** con marca de agua.
-3. Elige fotos sueltas o el pack completo, paga con Mercado Pago (ARS) o Stripe (USD) y descarga los originales.
+3. Elige fotos sueltas o el pack completo, paga con Mercado Pago y descarga los originales.
 
 **Stack:** Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui · Lucide · Supabase (Postgres, Auth, Storage) · Vercel.
 
@@ -20,8 +20,8 @@ npm run dev
 
 La migración está en `supabase/migrations/`. Aplicala con la CLI de Supabase (`supabase db push`) o pegándola en el SQL Editor del panel. Crea:
 
-- Tablas `albumes`, `fotos`, `pedidos` y `administradores`, con RLS: solo los administradores las leen y escriben.
-- Funciones para el público: `foto_por_codigo()` (nunca devuelve la ruta del original) y `registrar_vista()`.
+- Tablas `albumes`, `clientes`, `fotos`, `pedidos`, `pedidos_fotos`, `intentos_codigo` y `administradores`, con RLS: solo los administradores las leen y escriben.
+- Galería pública: `abrir_galeria()` (solo el servidor; nunca devuelve la ruta del original, bloquea tras 10 códigos erróneos en 15 min y oculta las fotos sin vender pasados `dias_vigencia` días).
 - `completar_pedido()`: acredita un pago aprobado. Solo la puede llamar el servidor (service role).
 - Buckets `previews` (público) y `high-res-photos` (privado: se descarga solo con enlaces firmados de 15 min).
 
@@ -40,7 +40,7 @@ insert into public.administradores (usuario_id) values ('<uuid del usuario>');
 4. **Subir las fotos del día** todas juntas: el navegador lee las tarjetas y reparte las fotos entre los clientes.
    Se revisa antes de subir (las fotos sin tarjeta se asignan a mano o se descartan). Las fotos de tarjeta no se suben.
    Si faltó la foto de una tarjeta, en el detalle del cliente se pueden agregar fotos a mano.
-5. El servidor (`/api/admin/procesar`, con sharp) genera la preview de 1280 px con marca de agua.
+5. El servidor (`/api/admin/procesar`, con sharp) genera la preview de 900 px con marca de agua.
 
 Cada foto paga muestra su botón de descarga en `/f/CODIGO` (`/api/fotos/CODIGO/FOTO/descarga`, enlace firmado de 15 min).
 Al volver de la pasarela con `?pago=pendiente`, la página consulta el estado hasta que se acredita el pago.
