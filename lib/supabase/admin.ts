@@ -1,6 +1,8 @@
 import 'server-only';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { esRutaR2 } from '@/lib/almacen';
 import { BUCKET_ORIGINALES, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/config';
+import { firmarLecturaR2 } from '@/lib/r2';
 
 let admin: SupabaseClient | null = null;
 
@@ -36,6 +38,7 @@ export function duracionUrlFirmada(): number {
  * Llamarlo SOLO después de verificar en la base que la foto está paga.
  */
 export async function firmarDescarga(rutaAlta: string, nombreArchivo: string): Promise<string> {
+  if (esRutaR2(rutaAlta)) return firmarLecturaR2(rutaAlta, duracionUrlFirmada(), nombreArchivo);
   const { data, error } = await supabaseAdmin()
     .storage.from(BUCKET_ORIGINALES)
     .createSignedUrl(rutaAlta, duracionUrlFirmada(), { download: nombreArchivo });

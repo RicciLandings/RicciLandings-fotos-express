@@ -21,6 +21,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.117.3",
+    "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jsqr": "^1.4.0",

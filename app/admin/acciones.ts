@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { sesionAdmin } from '@/lib/admin';
 import { BUCKET_ORIGINALES, BUCKET_PREVIEWS } from '@/lib/config';
+import { r2Activo, vaciarCarpetaR2 } from '@/lib/r2';
 import { supabaseServidor } from '@/lib/supabase/server';
 
 export type EstadoFormulario = { error?: string; ok?: string } | null;
@@ -174,6 +175,14 @@ export async function borrarAlbum(_: EstadoFormulario, datos: FormData): Promise
       await vaciarCarpeta(supabase, bucket, albumId);
     } catch (e) {
       console.error('No se pudieron borrar los archivos del álbum', bucket, albumId, e);
+    }
+  }
+
+  if (r2Activo()) {
+    try {
+      await vaciarCarpetaR2(albumId);
+    } catch (e) {
+      console.error('No se pudieron borrar los originales de R2', albumId, e);
     }
   }
 

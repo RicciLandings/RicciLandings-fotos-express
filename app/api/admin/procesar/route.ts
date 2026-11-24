@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sesionAdmin } from '@/lib/admin';
 import { BUCKET_ORIGINALES, BUCKET_PREVIEWS } from '@/lib/config';
+import { esRutaR2 } from '@/lib/almacen';
 import { crearPreview } from '@/lib/imagenes';
+import { borrarR2, leerR2 } from '@/lib/r2';
 
 // sharp necesita Node (no Edge). Una foto grande tarda 1–3 s.
 export const runtime = 'nodejs';
@@ -12,7 +14,7 @@ export const maxDuration = 60;
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const esquema = z.object({
   clienteId: z.string().uuid(),
-  rutaAlta: z.string().regex(new RegExp(`^${UUID}/${UUID}\\.(jpg|png|webp|tif)$`)),
+  rutaAlta: z.string().regex(new RegExp(`^${UUID}/(r2-)?${UUID}\\.(jpg|png|webp|tif)$`)),
 });
 
 function error(mensaje: string, estado: number) {
@@ -36,7 +38,9 @@ export async function POST(pedido: Request) {
 
   const originales = supabase.storage.from(BUCKET_ORIGINALES);
   const previews = supabase.storage.from(BUCKET_PREVIEWS);
-  const borrarOriginal = () => originales.remove([rutaAlta]);
+  const enR2 = esRutaR2(rutaAlta);
+  const borrarOriginal = () =>
+    enR2 ? borrarR2([rutaAlta]).catch((e) => console.error('No se pudo borrar de R2', rutaAlta, e)) : originales.remove([rutaAlta]);
 
   const { data: cliente } = await supabase.from('clientes').select('id, album_id').eq('id', clienteId).maybeSingle();
   if (!cliente) {
@@ -45,16 +49,23 @@ export async function POST(pedido: Request) {
   }
   if (!rutaAlta.startsWith(`${cliente.album_id}/`)) return error('El archivo no corresponde a este álbum.', 400);
 
-  const { data: original, error: errorDescarga } = await originales.download(rutaAlta);
-  if (errorDescarga || !original) {
-    console.error('No se pudo leer el original', rutaAlta, errorDescarga);
+  let bytes: Buffer;
+  try {
+    if (enR2) bytes = await leerR2(rutaAlta);
+    else {
+      const { data: original, error: errorDescarga } = await originales.download(rutaAlta);
+      if (errorDescarga || !original) throw errorDescarga ?? new Error('sin datos');
+      bytes = Buffer.from(await original.arrayBuffer());
+    }
+  } catch (e) {
+    console.error('No se pudo leer el original', rutaAlta, e);
     await borrarOriginal();
     return error('El servidor no pudo leer la foto subida. Probá de nuevo.', 500);
   }
 
   let preview: Buffer;
   try {
-    preview = await crearPreview(Buffer.from(await original.arrayBuffer()));
+    preview = await crearPreview(bytes);
   } catch {
     await borrarOriginal();
     return error('No se pudo leer la imagen. ¿Está dañada?', 422);

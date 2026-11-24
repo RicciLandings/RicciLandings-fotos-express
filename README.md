@@ -58,6 +58,17 @@ El monto lo calcula la base (`crear_pedido`): el navegador solo dice qué fotos 
 consulta el pago real en la API de MP y acredita con `completar_pedido` (idempotente). Para probar sin plata real, usar las
 credenciales y usuarios de prueba de MP. Stripe queda preparado en `services/payments/tipos.ts` (hace falta una cuenta fuera de Argentina).
 
+## Originales en Cloudflare R2 (opcional, para volumen)
+
+Si están las 4 variables `R2_*`, las fotos **nuevas** se guardan en R2 (sin costo de descarga); las anteriores siguen en Supabase.
+Los archivos de R2 se llaman `<album>/r2-<uuid>.jpg` (`lib/almacen.ts`, `lib/r2.ts`). Las previews siguen en Supabase.
+
+1. Cloudflare → R2 → crear bucket `fotear-originales` (privado).
+2. Bucket → *Settings → CORS policy*:
+   `[{"AllowedOrigins":["https://fotos-express.vercel.app"],"AllowedMethods":["PUT","GET"],"AllowedHeaders":["Content-Type"],"MaxAgeSeconds":3600}]`
+3. R2 → *Manage API tokens* → token con **Object Read & Write** sobre ese bucket.
+4. Vercel (Sensitive): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` → *Redeploy*.
+
 ## Estructura
 
 ```

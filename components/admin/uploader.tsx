@@ -138,9 +138,22 @@ export function Uploader({ albumId, tarjetas, clienteFijo }: { albumId: string; 
     const supabase = supabaseNavegador();
     actualizar(clave, { estado: 'subiendo', error: undefined });
     try {
-      const ruta = `${albumId}/${crypto.randomUUID()}.${TIPOS[archivo.type]}`;
-      const { error } = await supabase.storage.from(BUCKET_ORIGINALES).upload(ruta, archivo, { contentType: archivo.type, upsert: false });
-      if (error) throw new Error(`No se pudo subir: ${error.message}`);
+      // El servidor decide el destino: R2 (URL firmada) o Supabase Storage.
+      const rd = await fetch('/api/admin/subida', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId, tipo: archivo.type }),
+      });
+      const destino = (await rd.json().catch(() => null)) as { ruta?: string; url?: string | null; error?: string } | null;
+      if (!rd.ok || !destino?.ruta) throw new Error(destino?.error ?? `Error ${rd.status}`);
+      const ruta = destino.ruta;
+      if (destino.url) {
+        const rs = await fetch(destino.url, { method: 'PUT', headers: { 'Content-Type': archivo.type }, body: archivo });
+        if (!rs.ok) throw new Error(`No se pudo subir (${rs.status}).`);
+      } else {
+        const { error } = await supabase.storage.from(BUCKET_ORIGINALES).upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+        if (error) throw new Error(`No se pudo subir: ${error.message}`);
+      }
       actualizar(clave, { estado: 'procesando' });
       const r = await fetch('/api/admin/procesar', {
         method: 'POST',
