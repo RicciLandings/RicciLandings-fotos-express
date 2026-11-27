@@ -361,3 +361,14 @@ select pruebas.afirmar(
     where cliente_id = 'c0000000-0000-0000-0000-000000000033' and vendida),
   'el pack no incluye la foto vencida');
 select 'ok privacidad';
+
+-- API pública: RLS en todas las tablas y la clave anónima sin permisos sobre ninguna.
+select pruebas.afirmar(not exists (
+  select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity), 'todas las tablas con RLS');
+select pruebas.afirmar(not exists (
+  select 1 from information_schema.role_table_grants where table_schema = 'public' and grantee = 'anon'), 'anon sin permisos en tablas');
+select pruebas.afirmar(not exists (
+  select 1 from information_schema.role_table_grants
+   where table_schema = 'public' and grantee = 'authenticated' and privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES')), 'authenticated sin TRUNCATE');
+select 'ok api';
